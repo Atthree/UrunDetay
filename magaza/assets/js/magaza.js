@@ -393,6 +393,23 @@ function sepetSidebarGuncelle() {
     }
 
     // ==========================================
+    // ÖNE ÇIKAN KATEGORİLER — SEKME GEÇİŞİ
+    // ==========================================
+
+    document.querySelectorAll('.kategori-tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+            const hedefPanel = this.dataset.panel;
+
+            this.closest('.kategori-tab-bar').querySelectorAll('.kategori-tab').forEach(t => t.classList.remove('aktif'));
+            this.classList.add('aktif');
+
+            document.querySelectorAll('.kategori-panel').forEach(panel => {
+                panel.classList.toggle('aktif', panel.id === hedefPanel);
+            });
+        });
+    });
+
+    // ==========================================
     // SAYFA YÜKLEME — Başlangıç
     // ==========================================
 

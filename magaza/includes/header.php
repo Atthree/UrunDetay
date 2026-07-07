@@ -52,7 +52,7 @@ if (girisYapmisMi()) {
 <body>
 
 <header class="site-header">
-    <div class="container">
+    <div class="header-genis">
         <div class="header-ust">
             <!-- Logo -->
             <a href="/UrunDetay/magaza/index.php" class="brand">

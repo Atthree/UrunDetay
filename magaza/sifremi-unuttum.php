@@ -27,12 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($kullanici) {
             $token = bin2hex(random_bytes(32));
-            $sonKullanma = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-            $ekle = $pdo->prepare("INSERT INTO sifre_sifirlama (email, token, son_kullanma) VALUES (:email, :token, :son_kullanma)");
-            $ekle->execute([':email' => $email, ':token' => $token, ':son_kullanma' => $sonKullanma]);
+            $ekle = $pdo->prepare("INSERT INTO sifre_sifirlama (email, token, son_kullanma) VALUES (:email, :token, NOW() + INTERVAL 1 HOUR)");
+            $ekle->execute([':email' => $email, ':token' => $token]);
 
-            $sifirlamaLinki = "https://" . $_SERVER['HTTP_HOST'] . "/UrunDetay/magaza/sifre-sifirla.php?token=" . $token;
+            $protokol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+            $sifirlamaLinki = $protokol . $_SERVER['HTTP_HOST'] . "/UrunDetay/magaza/sifre-sifirla.php?token=" . $token;
 
             // E-posta gönderimi (sunucunuzda mail() fonksiyonu / SMTP yapılandırılmışsa çalışır)
             $konu = 'Şifre Sıfırlama Talebi';

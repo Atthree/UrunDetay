@@ -8,15 +8,33 @@ $filtreAktif = !empty($seciliKategori);
 
 <!-- Hero Section (yalnızca ana sayfada göster) -->
 <?php if (!$filtreAktif): ?>
-<section class="hero">
-    <div class="container">
-        <div class="hero-content">
-            <span class="hero-etiket">Yeni Sezon</span>
-            <h1>Tarzını Yansıtan<br>Ürünler Burada</h1>
-            <p>Kaliteli ürünleri en uygun fiyatlarla keşfet, hemen alışverişe başla.</p>
-            <a href="#urunler" class="btn btn-light btn-lg rounded-pill px-4" style="font-weight:600;">
-                Ürünleri İncele <i class="bi bi-arrow-right"></i>
-            </a>
+<section class="hero-video-wrap">
+    <video class="hero-video" autoplay muted loop playsinline
+           poster="/UrunDetay/magaza/assets/img/hero-poster.jpg">
+        <source src="/UrunDetay/magaza/assets/video/hero.mp4" type="video/mp4">
+    </video>
+    <div class="hero-video-katman"></div>
+
+    <div class="hero-video-icerik">
+        <span class="hero-etiket">Yeni Sezon</span>
+        <h1>Tarzını Yansıtan<br>Ürünler Burada</h1>
+        <p>Kaliteli ürünleri en uygun fiyatlarla keşfet, hemen alışverişe başla.</p>
+        <a href="#urunler" class="btn btn-light btn-lg rounded-pill px-4" style="font-weight:600;">
+            Ürünleri İncele <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+
+    <div class="hero-marquee">
+        <div class="hero-marquee-track">
+            <?php for ($i = 0; $i < 4; $i++): ?>
+                <span>Ücretsiz Kargo</span><span class="ayrac">✦</span>
+                <span>14 Gün İade</span><span class="ayrac">✦</span>
+                <span>Güvenli Ödeme</span><span class="ayrac">✦</span>
+                <span>Kapıda Ödeme</span><span class="ayrac">✦</span>
+                <span>%100 Orijinal Ürün</span><span class="ayrac">✦</span>
+                <span>7/24 Müşteri Desteği</span><span class="ayrac">✦</span>
+                <span>Yeni Sezon Ürünleri</span><span class="ayrac">✦</span>
+            <?php endfor; ?>
         </div>
     </div>
 </section>
