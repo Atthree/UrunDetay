@@ -66,7 +66,7 @@ if (!empty($urun['kategori'])) {
         <!-- Sol: Galeri -->
         <div class="urun-galeri">
             <div class="urun-galeri-ana" id="galeriAna">
-                <img src="/UrunDetay/<?php echo htmlspecialchars($urun['ana_resim'] ?: ''); ?>" 
+                <img src="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>" 
                      alt="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
                      id="galeriAnaImg">
             </div>
@@ -74,14 +74,14 @@ if (!empty($urun['kategori'])) {
                 <div class="urun-galeri-thumbnails">
                     <!-- Ana resim thumbnail -->
                     <?php if (!empty($urun['ana_resim'])): ?>
-                        <div class="urun-galeri-thumb aktif" onclick="galeriDegistir(this, '/UrunDetay/<?php echo htmlspecialchars($urun['ana_resim']); ?>')">
-                            <img src="/UrunDetay/<?php echo htmlspecialchars($urun['ana_resim']); ?>" alt="Ana">
+                        <div class="urun-galeri-thumb aktif" onclick="galeriDegistir(this, '<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')">
+                            <img src="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>" alt="Ana">
                         </div>
                     <?php endif; ?>
                     <!-- Ek resimler -->
                     <?php foreach ($ekResimler as $resim): ?>
-                        <div class="urun-galeri-thumb" onclick="galeriDegistir(this, '/UrunDetay/<?php echo htmlspecialchars($resim['resim_yolu']); ?>')">
-                            <img src="/UrunDetay/<?php echo htmlspecialchars($resim['resim_yolu']); ?>" alt="Ek Resim">
+                        <div class="urun-galeri-thumb" onclick="galeriDegistir(this, '<?php echo htmlspecialchars(resim_url($resim['resim_yolu'])); ?>')">
+                            <img src="<?php echo htmlspecialchars(resim_url($resim['resim_yolu'])); ?>" alt="Ek Resim">
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -158,7 +158,7 @@ if (!empty($urun['kategori'])) {
                             data-id="<?php echo $urun['id']; ?>"
                             data-baslik="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
                             data-fiyat="<?php echo $fiyat; ?>"
-                            data-resim="/UrunDetay/<?php echo htmlspecialchars($urun['ana_resim'] ?: ''); ?>">
+                            data-resim="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>">
                         <i class="bi bi-bag-plus"></i> Sepete Ekle
                     </button>
                     <button class="favori-ekle-btn" id="detayFavoriBtn" data-id="<?php echo $urun['id']; ?>" title="Favorilere Ekle">
@@ -217,7 +217,7 @@ if (!empty($urun['kategori'])) {
                     <div class="col-6 col-md-3">
                         <a href="urun.php?id=<?php echo $b['id']; ?>" class="urun-kart">
                             <div class="urun-resim-wrap">
-                                <div class="urun-resim" style="background-image:url('/UrunDetay/<?php echo htmlspecialchars($b['ana_resim'] ?: ''); ?>')"></div>
+                                <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($b['ana_resim'])); ?>')"></div>
                             </div>
                             <div class="urun-bilgi">
                                 <span class="urun-baslik"><?php echo htmlspecialchars($b['baslik_tr']); ?></span>

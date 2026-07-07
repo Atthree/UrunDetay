@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         data.forEach(u => {
                             html += `
                                 <a href="/UrunDetay/magaza/urun.php?id=${u.id}" class="arama-sonuc-item">
-                                    <img src="/UrunDetay/${u.ana_resim || ''}" alt="">
+                                    <img src="${u.ana_resim || ''}" alt="">
                                     <div class="arama-sonuc-bilgi">
                                         <div class="ad">${u.baslik_tr}</div>
                                         <div class="fiyat">${u.fiyat_tl > 0 ? formatFiyat(u.fiyat_tl) + ' TL' : '$' + parseFloat(u.fiyat_usd).toFixed(2)}</div>

@@ -7,6 +7,7 @@
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 $q = trim($_GET['q'] ?? '');
 
@@ -27,4 +28,10 @@ $aranan = '%' . $q . '%';
 $stmt->execute([':q1' => $aranan, ':q2' => $aranan, ':q3' => $aranan]);
 $sonuclar = $stmt->fetchAll();
 
+// Resim URL'lerini düzelt
+foreach ($sonuclar as &$s) {
+    $s['ana_resim'] = resim_url($s['ana_resim']);
+}
+
 echo json_encode($sonuclar, JSON_UNESCAPED_UNICODE);
+

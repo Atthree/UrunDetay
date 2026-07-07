@@ -41,7 +41,7 @@ $kategoriler = $pdo->query("
         <?php foreach ($kategoriler as $kat): ?>
             <div class="col-6 col-md-3">
                 <a href="index.php?kategori=<?php echo urlencode($kat['kategori']); ?>#urunler" class="kategori-kart">
-                    <div class="kategori-resim" style="background-image:url('/UrunDetay/<?php echo htmlspecialchars($kat['ornek_resim'] ?: ''); ?>')"></div>
+                    <div class="kategori-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($kat['ornek_resim'])); ?>')"></div>
                     <div class="kategori-bilgi">
                         <span class="kategori-ad"><?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?></span>
                         <span class="kategori-sayi"><?php echo (int)$kat['urun_sayisi']; ?> ürün</span>
@@ -211,7 +211,7 @@ $toplamUrun = count($urunler);
                                     <i class="bi bi-heart"></i>
                                 </button>
                                 <div class="urun-resim-wrap">
-                                    <div class="urun-resim" style="background-image:url('/UrunDetay/<?php echo htmlspecialchars($urun['ana_resim'] ?: ''); ?>')"></div>
+                                    <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
                                 </div>
                                 <div class="urun-bilgi">
                                     <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
@@ -249,7 +249,7 @@ $toplamUrun = count($urunler);
                             <i class="bi bi-heart"></i>
                         </button>
                         <div class="urun-resim-wrap">
-                            <div class="urun-resim" style="background-image:url('/UrunDetay/<?php echo htmlspecialchars($urun['ana_resim'] ?: ''); ?>')"></div>
+                            <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
                         </div>
                         <div class="urun-bilgi">
                             <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>

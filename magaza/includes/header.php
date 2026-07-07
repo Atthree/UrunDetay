@@ -1,4 +1,5 @@
 <?php require_once __DIR__ . '/../../config/db.php'; ?>
+<?php require_once __DIR__ . '/helpers.php'; ?>
 <?php
 // Mega menü için kategorileri çek
 $kategoriMenusu = $pdo->query("
