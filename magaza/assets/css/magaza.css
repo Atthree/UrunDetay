@@ -1755,6 +1755,15 @@ body {
 .kategori-panel {
     display: none;
 }
+.kategori-panel .urun-resim {
+    height: 280px;
+}
+
+@media (max-width: 767px) {
+    .kategori-panel .urun-resim {
+        height: 200px;
+    }
+}
 
 .kategori-panel.aktif {
     display: block;

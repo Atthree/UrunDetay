@@ -51,23 +51,66 @@ $kategoriler = $pdo->query("
 ")->fetchAll();
 ?>
 
-<!-- Kategori Kartları (yalnızca ana sayfada göster) -->
-<?php if (!$filtreAktif && count($kategoriler) > 0): ?>
+<?php
+// Öne çıkan kategoriler sekmesi için her kategoriden örnek ürünler
+$oneCikanKategoriler = array_slice($kategoriler, 0, 6);
+$kategoriUrunleri = [];
+foreach ($oneCikanKategoriler as $kat) {
+    $ornekStmt = $pdo->prepare("SELECT * FROM urunler WHERE kategori = :kategori AND durum = 1 ORDER BY id DESC LIMIT 4");
+    $ornekStmt->execute([':kategori' => $kat['kategori']]);
+    $kategoriUrunleri[$kat['kategori']] = $ornekStmt->fetchAll();
+}
+?>
+
+<!-- Öne Çıkan Kategoriler (sekmeli ürün önizleme, yalnızca ana sayfada) -->
+<?php if (!$filtreAktif && count($oneCikanKategoriler) > 0): ?>
 <section class="container py-5">
-    <h2 class="section-baslik">Kategoriler</h2>
-    <div class="row g-3">
-        <?php foreach ($kategoriler as $kat): ?>
-            <div class="col-6 col-md-3">
-                <a href="index.php?kategori=<?php echo urlencode($kat['kategori']); ?>#urunler" class="kategori-kart">
-                    <div class="kategori-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($kat['ornek_resim'])); ?>')"></div>
-                    <div class="kategori-bilgi">
-                        <span class="kategori-ad"><?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?></span>
-                        <span class="kategori-sayi"><?php echo (int)$kat['urun_sayisi']; ?> ürün</span>
-                    </div>
-                </a>
-            </div>
+    <h2 class="section-baslik text-center">Öne Çıkan Kategoriler</h2>
+
+    <div class="kategori-tab-bar">
+        <?php foreach ($oneCikanKategoriler as $i => $kat): ?>
+            <button type="button"
+                    class="kategori-tab<?php echo $i === 0 ? ' aktif' : ''; ?>"
+                    data-panel="kategori-panel-<?php echo $i; ?>">
+                <?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?>
+            </button>
         <?php endforeach; ?>
     </div>
+
+    <?php foreach ($oneCikanKategoriler as $i => $kat): ?>
+        <div class="kategori-panel<?php echo $i === 0 ? ' aktif' : ''; ?>" id="kategori-panel-<?php echo $i; ?>">
+            <div class="row g-4">
+                <?php foreach ($kategoriUrunleri[$kat['kategori']] as $urun): ?>
+                    <div class="col-6 col-md-3">
+                        <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
+                            <div class="urun-resim-wrap">
+                                <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
+                            </div>
+                            <div class="urun-bilgi">
+                                <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
+                                <span class="urun-fiyat">
+                                    $<?php echo number_format($urun['fiyat_usd'], 2); ?>
+                                </span>
+                                <?php if ((int)$urun['miktar'] === 0): ?>
+                                    <span class="urun-stok-yok">Stokta Yok</span>
+                                <?php endif; ?>
+                            </div>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+
+                <?php if (count($kategoriUrunleri[$kat['kategori']]) === 0): ?>
+                    <p class="text-muted">Bu kategoride henüz ürün yok.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="index.php?kategori=<?php echo urlencode($kat['kategori']); ?>#urunler" class="btn btn-outline-dark rounded-pill px-4">
+                    Tüm <?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?> Ürünlerini Gör
+                </a>
+            </div>
+        </div>
+    <?php endforeach; ?>
 </section>
 <?php endif; ?>
 
