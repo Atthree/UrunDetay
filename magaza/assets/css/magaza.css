@@ -77,11 +77,11 @@ body {
     gap: 0;
 }
 
-.ana-nav > .nav-item {
+.ana-nav>.nav-item {
     position: relative;
 }
 
-.ana-nav > .nav-item > a {
+.ana-nav>.nav-item>a {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -95,12 +95,12 @@ body {
     white-space: nowrap;
 }
 
-.ana-nav > .nav-item > a:hover {
+.ana-nav>.nav-item>a:hover {
     color: var(--renk-vurgu);
     background: rgba(233, 69, 96, 0.06);
 }
 
-.ana-nav > .nav-item > a .bi-chevron-down {
+.ana-nav>.nav-item>a .bi-chevron-down {
     font-size: 0.65rem;
     transition: transform 0.3s ease;
 }
@@ -137,8 +137,8 @@ body {
 }
 
 /* Hover köprü alanı — menü ile link arasındaki boşlukta menünün kaybolmaması */
-.ana-nav > .nav-item:hover > .mega-menu,
-.ana-nav > .nav-item > a:hover + .mega-menu {
+.ana-nav>.nav-item:hover>.mega-menu,
+.ana-nav>.nav-item>a:hover+.mega-menu {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
@@ -490,8 +490,15 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .sepet-urun img {
@@ -1453,8 +1460,13 @@ body {
 }
 
 @media (max-width: 767px) {
-    .hero { padding: 60px 0; }
-    .hero-content h1 { font-size: 1.9rem; }
+    .hero {
+        padding: 60px 0;
+    }
+
+    .hero-content h1 {
+        font-size: 1.9rem;
+    }
 
     .ana-nav {
         display: none;
@@ -1474,7 +1486,7 @@ body {
         display: flex;
     }
 
-    .ana-nav > .nav-item > a {
+    .ana-nav>.nav-item>a {
         padding: 14px 0;
         font-size: 1.05rem;
         border-bottom: 1px solid var(--renk-kenar);
@@ -1491,7 +1503,9 @@ body {
         display: none;
     }
 
-    .mega-menu::before { display: none; }
+    .mega-menu::before {
+        display: none;
+    }
 
     .mega-menu.aktif {
         display: block;
@@ -1519,5 +1533,38 @@ body {
 
     .urun-detay-fiyat {
         font-size: 1.5rem;
+    }
+
+    /* ==========================================
+   ÜYELİK SAYFALARI (Giriş / Kayıt / Profil)
+   Bu bloğu magaza.css dosyanızın sonuna ekleyin
+   ========================================== */
+
+    .auth-kart {
+        background: #fff;
+        border-radius: var(--yuvarlatma, 16px);
+        padding: 2rem;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .auth-kart .form-label {
+        font-weight: 500;
+        font-size: 0.9rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .auth-kart .form-control {
+        border-radius: 10px;
+        padding: 0.6rem 0.9rem;
+    }
+
+    .auth-kart a {
+        color: var(--renk-vurgu, #e91e63);
+        text-decoration: none;
+    }
+
+    .auth-kart a:hover {
+        text-decoration: underline;
     }
 }

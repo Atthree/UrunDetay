@@ -1,5 +1,6 @@
 <?php require_once __DIR__ . '/../../config/db.php'; ?>
 <?php require_once __DIR__ . '/helpers.php'; ?>
+<?php require_once __DIR__ . '/auth.php'; ?>
 <?php
 // Mega menü için kategorileri çek
 $kategoriMenusu = $pdo->query("
@@ -9,6 +10,34 @@ $kategoriMenusu = $pdo->query("
     GROUP BY kategori
     ORDER BY urun_sayisi DESC
 ")->fetchAll();
+
+// Header'daki favori rozeti için sayı
+$favoriSayisi = 0;
+if (girisYapmisMi()) {
+    $favSayacStmt = $pdo->prepare("SELECT COUNT(*) FROM favoriler WHERE kullanici_id = :kid");
+    $favSayacStmt->execute([':kid' => $_SESSION['kullanici_id']]);
+    $favoriSayisi = (int)$favSayacStmt->fetchColumn();
+}
+
+// Sayfa açılışında sepeti JS'e aktarmak için çekiyoruz
+$sepetOgeleri = [];
+if (girisYapmisMi()) {
+    $sepetStmt = $pdo->prepare("
+        SELECT s.urun_id AS id, s.adet, u.baslik_tr AS baslik, u.fiyat_usd AS fiyat, u.ana_resim AS resim
+        FROM sepet s
+        INNER JOIN urunler u ON u.id = s.urun_id
+        WHERE s.kullanici_id = :kid
+        ORDER BY s.eklenme_tarihi DESC
+    ");
+    $sepetStmt->execute([':kid' => $_SESSION['kullanici_id']]);
+    $sepetOgeleri = $sepetStmt->fetchAll();
+    foreach ($sepetOgeleri as &$oge) {
+        $oge['resim'] = resim_url($oge['resim']);
+        $oge['adet'] = (int)$oge['adet'];
+        $oge['fiyat'] = (float)$oge['fiyat'];
+    }
+    unset($oge);
+}
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -76,15 +105,23 @@ $kategoriMenusu = $pdo->query("
                 </button>
 
                 <!-- Profil -->
-                <a href="#" class="header-ikon-btn" title="Profilim">
-                    <i class="bi bi-person"></i>
-                </a>
+                <?php if (girisYapmisMi()): ?>
+                    <a href="/UrunDetay/magaza/profil.php" class="header-ikon-btn" title="Hesabım (<?php echo htmlspecialchars($_SESSION['kullanici_ad']); ?>)">
+                        <i class="bi bi-person-check-fill"></i>
+                    </a>
+                <?php else: ?>
+                    <a href="/UrunDetay/magaza/giris.php" class="header-ikon-btn" title="Giriş Yap">
+                        <i class="bi bi-person"></i>
+                    </a>
+                <?php endif; ?>
 
                 <!-- Favoriler -->
-                <a href="#" class="header-ikon-btn" id="favoriBtn" title="Favorilerim">
+                <a href="<?php echo girisYapmisMi() ? '/UrunDetay/magaza/favorilerim.php' : '/UrunDetay/magaza/giris.php'; ?>" class="header-ikon-btn" id="favoriBtn" title="Favorilerim">
                     <i class="bi bi-heart"></i>
-                    <span class="badge-sayi" id="favoriBadge">0</span>
+                    <span class="badge-sayi" id="favoriBadge"><?php echo $favoriSayisi ?? 0; ?></span>
+                    
                 </a>
+                
 
                 <!-- Sepet -->
                 <button class="header-ikon-btn" id="sepetAcBtn" title="Sepetim">

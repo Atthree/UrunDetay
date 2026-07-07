@@ -9,54 +9,54 @@ document.addEventListener('DOMContentLoaded', function () {
     // SEPET YÖNETİMİ (localStorage)
     // ==========================================
 
-    const SEPET_KEY = 'magazam_sepet';
-    const FAVORI_KEY = 'magazam_favoriler';
+
+    let sepetVerisi = window.SEPET_BASLANGIC || [];
 
     function sepetGetir() {
-        try {
-            return JSON.parse(localStorage.getItem(SEPET_KEY)) || [];
-        } catch { return []; }
+        return sepetVerisi;
     }
 
-    function sepetKaydet(sepet) {
-        localStorage.setItem(SEPET_KEY, JSON.stringify(sepet));
-        sepetBadgeGuncelle();
-        sepetSidebarGuncelle();
+    function sepetIstek(govde) {
+        return fetch('/UrunDetay/magaza/sepet-islem.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: govde
+        }).then(r => {
+            if (r.status === 401) {
+                window.location.href = '/UrunDetay/magaza/giris.php';
+                return null;
+            }
+            return r.json();
+        }).then(data => {
+            if (!data || !data.basarili) return null;
+            sepetVerisi = data.sepet;
+            sepetBadgeGuncelle();
+            sepetSidebarGuncelle();
+            return data;
+        }).catch(() => {
+            bildirimGoster('Bir hata oluştu, tekrar deneyin.');
+            return null;
+        });
     }
 
-    function sepeteEkle(id, baslik, fiyat, resim, adet) {
-        const sepet = sepetGetir();
-        const mevcut = sepet.find(u => u.id == id);
-        if (mevcut) {
-            mevcut.adet += adet;
-        } else {
-            sepet.push({ id, baslik, fiyat: parseFloat(fiyat), resim, adet });
-        }
-        sepetKaydet(sepet);
-        bildirimGoster('Ürün sepete eklendi!', 'basarili');
+    function sepeteEkle(id, adet) {
+        sepetIstek('islem=ekle&urun_id=' + encodeURIComponent(id) + '&adet=' + encodeURIComponent(adet))
+            .then(data => {
+                if (data) bildirimGoster('Ürün sepete eklendi!', 'basarili');
+            });
     }
 
     function sepettenSil(id) {
-        let sepet = sepetGetir().filter(u => u.id != id);
-        sepetKaydet(sepet);
+        sepetIstek('islem=sil&urun_id=' + encodeURIComponent(id));
     }
 
     function sepetAdetGuncelle(id, delta) {
-        const sepet = sepetGetir();
-        const urun = sepet.find(u => u.id == id);
-        if (urun) {
-            urun.adet += delta;
-            if (urun.adet < 1) {
-                sepettenSil(id);
-                return;
-            }
-        }
-        sepetKaydet(sepet);
+        sepetIstek('islem=adet_guncelle&urun_id=' + encodeURIComponent(id) + '&delta=' + encodeURIComponent(delta));
     }
 
     function sepetBadgeGuncelle() {
         const sepet = sepetGetir();
-        const toplamAdet = sepet.reduce((t, u) => t + u.adet, 0);
+        const toplamAdet = sepet.reduce((t, u) => t + parseInt(u.adet, 10), 0);
         const badge = document.getElementById('sepetBadge');
         if (badge) {
             badge.textContent = toplamAdet;
@@ -64,124 +64,104 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function sepetSidebarGuncelle() {
-        const sepet = sepetGetir();
-        const icerik = document.getElementById('sepetIcerik');
-        const alt = document.getElementById('sepetAlt');
-        const toplamEl = document.getElementById('sepetToplam');
+    function paraBirimiSembolu(pb) {
+    return pb === 'USD' ? '$' : 'TL';
+}
 
-        if (!icerik) return;
+function sepetSidebarGuncelle() {
+    const sepet = sepetGetir();
+    const icerik = document.getElementById('sepetIcerik');
+    const alt = document.getElementById('sepetAlt');
+    const toplamEl = document.getElementById('sepetToplam');
 
-        if (sepet.length === 0) {
-            icerik.innerHTML = '<div class="sepet-bos"><i class="bi bi-bag-x"></i><p>Sepetiniz boş</p></div>';
-            if (alt) alt.style.display = 'none';
-            return;
-        }
+    if (!icerik) return;
 
-        let html = '';
-        let toplam = 0;
-
-        sepet.forEach(u => {
-            const araToplam = u.fiyat * u.adet;
-            toplam += araToplam;
-
-            html += `
-                <div class="sepet-urun">
-                    <img src="${u.resim}" alt="${u.baslik}">
-                    <div class="sepet-urun-bilgi">
-                        <div class="ad">${u.baslik}</div>
-                        <div class="fiyat">${formatFiyat(araToplam)} TL</div>
-                        <div class="sepet-urun-adet">
-                            <button onclick="window.sepetAdetGuncelle(${u.id}, -1)">−</button>
-                            <span>${u.adet}</span>
-                            <button onclick="window.sepetAdetGuncelle(${u.id}, 1)">+</button>
-                        </div>
-                    </div>
-                    <button class="sepet-urun-sil" onclick="window.sepettenSil(${u.id})">
-                        <i class="bi bi-trash3"></i>
-                    </button>
-                </div>
-            `;
-        });
-
-        icerik.innerHTML = html;
-        if (alt) {
-            alt.style.display = 'block';
-            toplamEl.textContent = formatFiyat(toplam) + ' TL';
-        }
+    if (sepet.length === 0) {
+        icerik.innerHTML = '<div class="sepet-bos"><i class="bi bi-bag-x"></i><p>Sepetiniz boş</p></div>';
+        if (alt) alt.style.display = 'none';
+        return;
     }
+
+    let html = '';
+    let toplam = 0;
+
+    sepet.forEach(u => {
+        const araToplam = parseFloat(u.fiyat) * parseInt(u.adet, 10);
+        toplam += araToplam;
+
+        html += `
+            <div class="sepet-urun">
+                <img src="${u.resim}" alt="${u.baslik}">
+                <div class="sepet-urun-bilgi">
+                    <div class="ad">${u.baslik}</div>
+                    <div class="fiyat">$${araToplam.toFixed(2)}</div>
+                    <div class="sepet-urun-adet">
+                        <button onclick="window.sepetAdetGuncelle(${u.id}, -1)">−</button>
+                        <span>${u.adet}</span>
+                        <button onclick="window.sepetAdetGuncelle(${u.id}, 1)">+</button>
+                    </div>
+                </div>
+                <button class="sepet-urun-sil" onclick="window.sepettenSil(${u.id})">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+        `;
+    });
+
+    icerik.innerHTML = html;
+    if (alt) {
+        alt.style.display = 'block';
+        toplamEl.textContent = '$' + toplam.toFixed(2);
+    }
+}
 
     // Global erişim (onclick'ler için)
     window.sepetAdetGuncelle = function(id, delta) { sepetAdetGuncelle(id, delta); };
     window.sepettenSil = function(id) { sepettenSil(id); };
 
     // ==========================================
-    // FAVORİ YÖNETİMİ (localStorage)
+    // FAVORİ YÖNETİMİ (veritabanı - AJAX)
     // ==========================================
 
-    function favorileriGetir() {
-        try {
-            return JSON.parse(localStorage.getItem(FAVORI_KEY)) || [];
-        } catch { return []; }
-    }
-
-    function favorileriKaydet(favoriler) {
-        localStorage.setItem(FAVORI_KEY, JSON.stringify(favoriler));
-        favoriBadgeGuncelle();
-    }
-
-    function toggleFavoriId(id) {
-        let favoriler = favorileriGetir();
-        const index = favoriler.indexOf(id);
-        if (index > -1) {
-            favoriler.splice(index, 1);
-            bildirimGoster('Favorilerden çıkarıldı');
-        } else {
-            favoriler.push(id);
-            bildirimGoster('Favorilere eklendi!', 'basarili');
-        }
-        favorileriKaydet(favoriler);
-        return favoriler.includes(id);
-    }
-
-    function favoriBadgeGuncelle() {
-        const favoriler = favorileriGetir();
+    function favoriBadgeDegistir(delta) {
         const badge = document.getElementById('favoriBadge');
-        if (badge) {
-            badge.textContent = favoriler.length;
-            badge.classList.toggle('aktif', favoriler.length > 0);
-        }
-    }
-
-    // Favori butonlarını güncelle (sayfa yüklendiğinde)
-    function favoriButonlariGuncelle() {
-        const favoriler = favorileriGetir();
-        document.querySelectorAll('.favori-btn[data-id]').forEach(btn => {
-            const id = parseInt(btn.dataset.id);
-            if (favoriler.includes(id)) {
-                btn.classList.add('aktif');
-                btn.querySelector('i').className = 'bi bi-heart-fill';
-            }
-        });
-
-        // Ürün detay favori butonu
-        const detayBtn = document.getElementById('detayFavoriBtn');
-        if (detayBtn) {
-            const id = parseInt(detayBtn.dataset.id);
-            if (favoriler.includes(id)) {
-                detayBtn.classList.add('aktif');
-                detayBtn.querySelector('i').className = 'bi bi-heart-fill';
-            }
-        }
+        if (!badge) return;
+        const yeniSayi = Math.max(0, parseInt(badge.textContent || '0') + delta);
+        badge.textContent = yeniSayi;
+        badge.classList.toggle('aktif', yeniSayi > 0);
     }
 
     // Global toggleFavori
     window.toggleFavori = function (id, btn) {
-        const aktif = toggleFavoriId(id);
-        if (btn) {
-            btn.classList.toggle('aktif', aktif);
-            btn.querySelector('i').className = aktif ? 'bi bi-heart-fill' : 'bi bi-heart';
-        }
+        fetch('/UrunDetay/magaza/favori-islem.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'urun_id=' + encodeURIComponent(id)
+        })
+            .then(r => {
+                if (r.status === 401) {
+                    window.location.href = '/UrunDetay/magaza/giris.php';
+                    return null;
+                }
+                return r.json();
+            })
+            .then(data => {
+                if (!data || !data.basarili) return;
+
+                const eklendi = data.durum === 'eklendi';
+
+                if (btn) {
+                    btn.classList.toggle('aktif', eklendi);
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = eklendi ? 'bi bi-heart-fill' : 'bi bi-heart';
+                }
+
+                favoriBadgeDegistir(eklendi ? 1 : -1);
+                bildirimGoster(eklendi ? 'Favorilere eklendi!' : 'Favorilerden çıkarıldı', eklendi ? 'basarili' : '');
+            })
+            .catch(() => {
+                bildirimGoster('Bir hata oluştu, tekrar deneyin.');
+            });
     };
 
     // ==========================================
@@ -278,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <img src="${u.ana_resim || ''}" alt="">
                                     <div class="arama-sonuc-bilgi">
                                         <div class="ad">${u.baslik_tr}</div>
-                                        <div class="fiyat">${u.fiyat_tl > 0 ? formatFiyat(u.fiyat_tl) + ' TL' : '$' + parseFloat(u.fiyat_usd).toFixed(2)}</div>
+                                        <div class="fiyat">$${parseFloat(u.fiyat_usd).toFixed(2)}</div>
                                     </div>
                                 </a>
                             `;
@@ -360,13 +340,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (sepeteEkleBtn) {
         sepeteEkleBtn.addEventListener('click', function () {
             const id = parseInt(this.dataset.id);
-            const baslik = this.dataset.baslik;
-            const fiyat = this.dataset.fiyat;
-            const resim = this.dataset.resim;
             const adetInput = document.getElementById('urunAdet');
             const adet = adetInput ? parseInt(adetInput.value) || 1 : 1;
 
-            sepeteEkle(id, baslik, fiyat, resim, adet);
+            sepeteEkle(id, adet);
 
             // Buton animasyonu
             const orijinalHTML = this.innerHTML;
@@ -420,8 +397,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
 
     sepetBadgeGuncelle();
-    favoriBadgeGuncelle();
-    favoriButonlariGuncelle();
     sepetSidebarGuncelle();
 
 });

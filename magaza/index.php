@@ -69,27 +69,27 @@ if ($seciliKategori) {
 }
 
 if ($fiyatMin !== null && $fiyatMin > 0) {
-    $sql .= " AND fiyat_tl >= :fiyat_min";
+    $sql .= " AND (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) >= :fiyat_min";
     $params[':fiyat_min'] = $fiyatMin;
 }
 
 if ($fiyatMax !== null && $fiyatMax > 0) {
-    $sql .= " AND fiyat_tl <= :fiyat_max";
+    $sql .= " AND (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) <= :fiyat_max";
     $params[':fiyat_max'] = $fiyatMax;
 }
 
 // Sıralama
 switch ($siralama) {
     case 'fiyat_artan':
-        $sql .= " ORDER BY fiyat_tl ASC";
+        $sql .= " ORDER BY (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) ASC";
         break;
     case 'fiyat_azalan':
-        $sql .= " ORDER BY fiyat_tl DESC";
+        $sql .= " ORDER BY (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) DESC";
         break;
     case 'ad_az':
         $sql .= " ORDER BY baslik_tr ASC";
         break;
-    default: // 'yeni'
+    default:
         $sql .= " ORDER BY id DESC";
 }
 
@@ -100,6 +100,14 @@ if (!$filtreAktif) {
 $stmtUrunler = $pdo->prepare($sql);
 $stmtUrunler->execute($params);
 $urunler = $stmtUrunler->fetchAll();
+
+// Giriş yapan kullanıcının favori ürün ID'leri
+$favoriIdler = [];
+if (girisYapmisMi()) {
+    $favStmt = $pdo->prepare("SELECT urun_id FROM favoriler WHERE kullanici_id = :kid");
+    $favStmt->execute([':kid' => $_SESSION['kullanici_id']]);
+    $favoriIdler = array_column($favStmt->fetchAll(), 'urun_id');
+}
 
 // Toplam ürün sayısı (filtre sonucu)
 $toplamUrun = count($urunler);
@@ -167,6 +175,11 @@ $toplamUrun = count($urunler);
                                value="<?php echo $fiyatMax !== null ? (int)$fiyatMax : ''; ?>">
                     </div>
                     <button type="submit" class="filtre-uygula-btn">Uygula</button>
+                    <?php if ($fiyatMin !== null || $fiyatMax !== null): ?>
+                        <a href="index.php?<?php echo http_build_query(array_filter(['kategori' => $seciliKategori, 'siralama' => $siralama])); ?>#urunler" class="filtre-temizle-link">
+                            Fiyat filtresini temizle
+                        </a>
+                    <?php endif; ?>
                 </form>
             </div>
 
@@ -205,10 +218,10 @@ $toplamUrun = count($urunler);
                     <?php foreach ($urunler as $urun): ?>
                         <div class="col-6 col-md-4">
                             <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
-                                <button class="favori-btn" data-id="<?php echo $urun['id']; ?>" 
+                                <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler) ? ' aktif' : ''; ?>" data-id="<?php echo $urun['id']; ?>" 
                                         onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
                                         title="Favorilere Ekle">
-                                    <i class="bi bi-heart"></i>
+                                    <i class="bi <?php echo in_array($urun['id'], $favoriIdler) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
                                 </button>
                                 <div class="urun-resim-wrap">
                                     <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
@@ -243,11 +256,11 @@ $toplamUrun = count($urunler);
             <?php foreach ($urunler as $urun): ?>
                 <div class="col-6 col-md-4 col-lg-3">
                     <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
-                        <button class="favori-btn" data-id="<?php echo $urun['id']; ?>"
-                                onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
-                                title="Favorilere Ekle">
-                            <i class="bi bi-heart"></i>
-                        </button>
+                        <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler) ? ' aktif' : ''; ?>" data-id="<?php echo $urun['id']; ?>" 
+                                        onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
+                                        title="Favorilere Ekle">
+                                    <i class="bi <?php echo in_array($urun['id'], $favoriIdler) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
+                                </button>
                         <div class="urun-resim-wrap">
                             <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
                         </div>

@@ -31,9 +31,21 @@ if (!$urun) {
 }
 
 // Fiyat hesaplama
-$fiyat = (float)$urun['fiyat_tl'];
+// Fiyat hesaplama
+$fiyatTl = (float)$urun['fiyat_tl'];
+$fiyatUsd = (float)$urun['fiyat_usd'];
+$paraBirimi = $fiyatTl > 0 ? 'TL' : 'USD';
+$fiyat = $paraBirimi === 'TL' ? $fiyatTl : $fiyatUsd;
 $eskiFiyat = (float)($urun['fiyat2_tl'] ?? 0);
 $stokVar = (int)$urun['miktar'] > 0;
+
+// Bu ürün, giriş yapan kullanıcının favorisinde mi?
+$favoride = false;
+if (girisYapmisMi()) {
+    $favKontrol = $pdo->prepare("SELECT id FROM favoriler WHERE kullanici_id = :kid AND urun_id = :uid");
+    $favKontrol->execute([':kid' => $_SESSION['kullanici_id'], ':uid' => $urun['id']]);
+    $favoride = (bool)$favKontrol->fetch();
+}
 
 // Benzer ürünler (aynı kategori)
 $benzerUrunler = [];
@@ -66,9 +78,9 @@ if (!empty($urun['kategori'])) {
         <!-- Sol: Galeri -->
         <div class="urun-galeri">
             <div class="urun-galeri-ana" id="galeriAna">
-                <img src="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>" 
-                     alt="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
-                     id="galeriAnaImg">
+                <img src="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>"
+                    alt="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
+                    id="galeriAnaImg">
             </div>
             <?php if (count($ekResimler) > 0 || !empty($urun['ana_resim'])): ?>
                 <div class="urun-galeri-thumbnails">
@@ -108,14 +120,10 @@ if (!empty($urun['kategori'])) {
             <!-- Fiyat -->
             <div class="urun-detay-fiyat-wrap">
                 <span class="urun-detay-fiyat">
-                    <?php if ($fiyat > 0): ?>
-                        <?php echo number_format($fiyat, 2, ',', '.'); ?> TL
-                    <?php else: ?>
-                        $<?php echo number_format((float)$urun['fiyat_usd'], 2); ?>
-                    <?php endif; ?>
+                    $<?php echo number_format((float)$urun['fiyat_usd'], 2); ?>
                 </span>
-                <?php if ($eskiFiyat > 0 && $eskiFiyat > $fiyat): ?>
-                    <span class="urun-detay-eski-fiyat"><?php echo number_format($eskiFiyat, 2, ',', '.'); ?> TL</span>
+                <?php if ($eskiFiyat > 0 && $eskiFiyat > (float)$urun['fiyat_usd']): ?>
+                    <span class="urun-detay-eski-fiyat">$<?php echo number_format($eskiFiyat, 2); ?></span>
                 <?php endif; ?>
                 <span class="urun-detay-vergi">KDV Dahil (% <?php echo (int)$urun['vergi_orani']; ?>)</span>
             </div>
@@ -154,15 +162,11 @@ if (!empty($urun['kategori'])) {
                 </div>
 
                 <div class="urun-detay-butonlar">
-                    <button class="sepete-ekle-btn" id="sepeteEkleBtn"
-                            data-id="<?php echo $urun['id']; ?>"
-                            data-baslik="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
-                            data-fiyat="<?php echo $fiyat; ?>"
-                            data-resim="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>">
+                    <button class="sepete-ekle-btn" id="sepeteEkleBtn" data-id="<?php echo $urun['id']; ?>">
                         <i class="bi bi-bag-plus"></i> Sepete Ekle
                     </button>
-                    <button class="favori-ekle-btn" id="detayFavoriBtn" data-id="<?php echo $urun['id']; ?>" title="Favorilere Ekle">
-                        <i class="bi bi-heart"></i>
+                    <button class="favori-ekle-btn<?php echo $favoride ? ' aktif' : ''; ?>" id="detayFavoriBtn" data-id="<?php echo $urun['id']; ?>" title="Favorilere Ekle">
+                        <i class="bi <?php echo $favoride ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
                     </button>
                 </div>
             <?php else: ?>
@@ -238,23 +242,23 @@ if (!empty($urun['kategori'])) {
 </div>
 
 <script>
-// Galeri thumbnail değiştirme
-function galeriDegistir(thumb, yeniSrc) {
-    document.getElementById('galeriAnaImg').src = yeniSrc;
-    document.querySelectorAll('.urun-galeri-thumb').forEach(t => t.classList.remove('aktif'));
-    thumb.classList.add('aktif');
-}
+    // Galeri thumbnail değiştirme
+    function galeriDegistir(thumb, yeniSrc) {
+        document.getElementById('galeriAnaImg').src = yeniSrc;
+        document.querySelectorAll('.urun-galeri-thumb').forEach(t => t.classList.remove('aktif'));
+        thumb.classList.add('aktif');
+    }
 
-// Adet değiştirme
-function adetDegistir(delta) {
-    const input = document.getElementById('urunAdet');
-    let val = parseInt(input.value) || 1;
-    val += delta;
-    const maxVal = parseInt(input.max) || 999;
-    if (val < 1) val = 1;
-    if (val > maxVal) val = maxVal;
-    input.value = val;
-}
+    // Adet değiştirme
+    function adetDegistir(delta) {
+        const input = document.getElementById('urunAdet');
+        let val = parseInt(input.value) || 1;
+        val += delta;
+        const maxVal = parseInt(input.max) || 999;
+        if (val < 1) val = 1;
+        if (val > maxVal) val = maxVal;
+        input.value = val;
+    }
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
