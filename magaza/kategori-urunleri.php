@@ -16,31 +16,13 @@ $stmt = $pdo->prepare("SELECT * FROM urunler WHERE kategori = :kategori AND duru
 $stmt->execute([':kategori' => $kategori]);
 $urunler = $stmt->fetchAll();
 
-// Puan bilgisi ekle
-if (count($urunler) > 0) {
-    $idler = array_column($urunler, 'id');
-    $yerTutucular = implode(',', array_fill(0, count($idler), '?'));
-    $puanStmt = $pdo->prepare("
-        SELECT urun_id, AVG(puan) AS ortalama
-        FROM urun_yorumlari
-        WHERE urun_id IN ($yerTutucular)
-        GROUP BY urun_id
-    ");
-    $puanStmt->execute($idler);
-
-    $puanMap = [];
-    foreach ($puanStmt->fetchAll() as $satir) {
-        $puanMap[$satir['urun_id']] = round((float)$satir['ortalama'], 1);
-    }
-} else {
-    $puanMap = [];
-}
+$puanMap = urun_ortalama_puanlari($pdo, array_column($urunler, 'id'));
 
 foreach ($urunler as &$u) {
     $u['ana_resim'] = resim_url($u['ana_resim']);
     $u['fiyat_usd'] = (float)$u['fiyat_usd'];
     $u['miktar'] = (int)$u['miktar'];
-    $u['yildiz_ortalama'] = $puanMap[$u['id']] ?? null;
+    $u['yildiz_ortalama'] = $puanMap[$u['id']]['ortalama'] ?? null;
 }
 unset($u);
 

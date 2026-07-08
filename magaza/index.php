@@ -1,13 +1,10 @@
-<?php require_once __DIR__ . '/includes/header.php'; ?>
-
 <?php
-// Kategoriye göre filtreleme
-$seciliKategori = $_GET['kategori'] ?? null;
-$filtreAktif = !empty($seciliKategori);
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/anasayfa-veri.php';
 ?>
 
 <!-- Hero Section (yalnızca ana sayfada göster) -->
-<?php if (!$filtreAktif): ?>
+<?php if (!$urunlerGoster): ?>
 <section class="hero-video-wrap">
     <video class="hero-video" autoplay muted loop playsinline
            poster="/UrunDetay/magaza/assets/img/hero-poster.jpg">
@@ -19,7 +16,7 @@ $filtreAktif = !empty($seciliKategori);
         <span class="hero-etiket">Yeni Sezon</span>
         <h1>Tarzını Yansıtan<br>Ürünler Burada</h1>
         <p>Kaliteli ürünleri en uygun fiyatlarla keşfet, hemen alışverişe başla.</p>
-        <a href="#urunler" class="btn btn-light btn-lg rounded-pill px-4" style="font-weight:600;">
+        <a href="index.php?tumu=1#urunler" class="btn btn-light btn-lg rounded-pill px-4" style="font-weight:600;">
             Ürünleri İncele <i class="bi bi-arrow-right"></i>
         </a>
     </div>
@@ -40,103 +37,8 @@ $filtreAktif = !empty($seciliKategori);
 </section>
 <?php endif; ?>
 
-<?php
-// Kategorileri çek (hem grid hem filtre sidebar için)
-$kategoriler = $pdo->query("
-    SELECT kategori, COUNT(*) AS urun_sayisi, MIN(ana_resim) AS ornek_resim
-    FROM urunler
-    WHERE kategori IS NOT NULL AND kategori != '' AND durum = 1
-    GROUP BY kategori
-    ORDER BY urun_sayisi DESC
-")->fetchAll();
-?>
-
-<?php
-// "Customer Say!" bölümü için DummyJSON'dan yorumları çek
-function yorumlariGetir($adet = 9) {
-    $ch = curl_init("https://dummyjson.com/products?limit=15&select=title,reviews,thumbnail,price");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    $yanit = curl_exec($ch);
-    curl_close($ch);
-
-    if (!$yanit) return [];
-
-    $veri = json_decode($yanit, true);
-    if (empty($veri['products'])) return [];
-
-    $tumYorumlar = [];
-    foreach ($veri['products'] as $urun) {
-        if (empty($urun['reviews'])) continue;
-        foreach ($urun['reviews'] as $yorum) {
-            $tumYorumlar[] = [
-                'reviewerName' => $yorum['reviewerName'],
-                'comment'      => $yorum['comment'],
-                'rating'       => (int)round($yorum['rating']),
-                'urunAdi'      => $urun['title'],
-                'urunResim'    => $urun['thumbnail'],
-                'urunFiyat'    => $urun['price'],
-            ];
-        }
-    }
-
-    shuffle($tumYorumlar);
-    return array_slice($tumYorumlar, 0, $adet);
-}
-
-$musteriYorumlari = yorumlariGetir(9);
-?>
-
-<?php
-// Öne çıkan kategoriler sekmesi — yalnızca İLK kategori için ürünleri PHP'de önceden çekiyoruz.
-// Diğer kategoriler, sekmesine tıklandığında AJAX (POST) ile yüklenecek.
-$oneCikanKategoriler = array_slice($kategoriler, 0, 6);
-$ilkKategoriUrunleri = [];
-
-if (count($oneCikanKategoriler) > 0) {
-    $ilkKategoriAdi = $oneCikanKategoriler[0]['kategori'];
-    $ornekStmt = $pdo->prepare("SELECT * FROM urunler WHERE kategori = :kategori AND durum = 1 ORDER BY id DESC LIMIT 4");
-    $ornekStmt->execute([':kategori' => $ilkKategoriAdi]);
-    $ilkKategoriUrunleri = $ornekStmt->fetchAll();
-}
-
-// Yardımcı fonksiyon: bir ürün listesine ortalama puan/yorum sayısı ekler
-function urunlereYildizEkle($pdo, $urunler) {
-    if (count($urunler) === 0) return $urunler;
-
-    $idler = array_column($urunler, 'id');
-    $yerTutucular = implode(',', array_fill(0, count($idler), '?'));
-    $puanStmt = $pdo->prepare("
-        SELECT urun_id, AVG(puan) AS ortalama, COUNT(*) AS adet
-        FROM urun_yorumlari
-        WHERE urun_id IN ($yerTutucular)
-        GROUP BY urun_id
-    ");
-    $puanStmt->execute($idler);
-
-    $puanMap = [];
-    foreach ($puanStmt->fetchAll() as $satir) {
-        $puanMap[$satir['urun_id']] = [
-            'ortalama' => round((float)$satir['ortalama'], 1),
-            'adet'     => (int)$satir['adet'],
-        ];
-    }
-
-    foreach ($urunler as &$u) {
-        $u['yildiz_ortalama'] = $puanMap[$u['id']]['ortalama'] ?? null;
-        $u['yildiz_adet'] = $puanMap[$u['id']]['adet'] ?? 0;
-    }
-    unset($u);
-
-    return $urunler;
-}
-
-$ilkKategoriUrunleri = urunlereYildizEkle($pdo, $ilkKategoriUrunleri);
-?>
-
 <!-- Öne Çıkan Kategoriler (sekmeli, ilk sekme dışında AJAX ile yüklenir) -->
-<?php if (!$filtreAktif && count($oneCikanKategoriler) > 0): ?>
+<?php if (!$urunlerGoster && count($oneCikanKategoriler) > 0): ?>
 <section class="container py-5">
     <h2 class="section-baslik text-center">Öne Çıkan Kategoriler</h2>
 
@@ -162,11 +64,7 @@ $ilkKategoriUrunleri = urunlereYildizEkle($pdo, $ilkKategoriUrunleri);
                         <div class="urun-bilgi">
                             <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
                             <?php if ($urun['yildiz_ortalama'] !== null): ?>
-                                <span class="urun-yildizlar">
-                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                        <i class="bi <?php echo $i <= round($urun['yildiz_ortalama']) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                                    <?php endfor; ?>
-                                </span>
+                                <span class="urun-yildizlar"><?php echo yildizlar_html($urun['yildiz_ortalama']); ?></span>
                             <?php endif; ?>
                             <span class="urun-fiyat">$<?php echo number_format($urun['fiyat_usd'], 2); ?></span>
                             <?php if ((int)$urun['miktar'] === 0): ?>
@@ -206,102 +104,17 @@ $ilkKategoriUrunleri = urunlereYildizEkle($pdo, $ilkKategoriUrunleri);
 </script>
 <?php endif; ?>
 
-<?php
-// Ürünleri çek
-// Fiyat aralığı filtreleri
-$fiyatMin = isset($_GET['fiyat_min']) ? (float)$_GET['fiyat_min'] : null;
-$fiyatMax = isset($_GET['fiyat_max']) ? (float)$_GET['fiyat_max'] : null;
-$siralama = $_GET['siralama'] ?? 'yeni';
-
-$sql = "SELECT * FROM urunler WHERE durum = 1";
-$params = [];
-
-if ($seciliKategori) {
-    $sql .= " AND kategori = :kategori";
-    $params[':kategori'] = $seciliKategori;
-}
-
-if ($fiyatMin !== null && $fiyatMin > 0) {
-    $sql .= " AND (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) >= :fiyat_min";
-    $params[':fiyat_min'] = $fiyatMin;
-}
-
-if ($fiyatMax !== null && $fiyatMax > 0) {
-    $sql .= " AND (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) <= :fiyat_max";
-    $params[':fiyat_max'] = $fiyatMax;
-}
-
-// Sıralama
-switch ($siralama) {
-    case 'fiyat_artan':
-        $sql .= " ORDER BY (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) ASC";
-        break;
-    case 'fiyat_azalan':
-        $sql .= " ORDER BY (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) DESC";
-        break;
-    case 'ad_az':
-        $sql .= " ORDER BY baslik_tr ASC";
-        break;
-    default:
-        $sql .= " ORDER BY id DESC";
-}
-
-if (!$filtreAktif) {
-    $sql .= " LIMIT 24";
-}
-
-$stmtUrunler = $pdo->prepare($sql);
-$stmtUrunler->execute($params);
-$urunler = $stmtUrunler->fetchAll();
-
-// Giriş yapan kullanıcının favori ürün ID'leri
-$favoriIdler = [];
-if (girisYapmisMi()) {
-    $favStmt = $pdo->prepare("SELECT urun_id FROM favoriler WHERE kullanici_id = :kid");
-    $favStmt->execute([':kid' => $_SESSION['kullanici_id']]);
-    $favoriIdler = array_column($favStmt->fetchAll(), 'urun_id');
-}
-
-// "Paket Yap, %30 Kazan" bölümü için ürünler (en yeni 6 ürün)
-$paketUrunleri = $pdo->query("
-    SELECT * FROM urunler WHERE durum = 1 ORDER BY id DESC LIMIT 6
-")->fetchAll();
-
-// Paket ürünleri için ortalama puan ve yorum sayısını tek sorguda çek
-$paketPuanlar = [];
-if (count($paketUrunleri) > 0) {
-    $idler = array_column($paketUrunleri, 'id');
-    $yerTutucular = implode(',', array_fill(0, count($idler), '?'));
-    $puanStmt = $pdo->prepare("
-        SELECT urun_id, AVG(puan) AS ortalama, COUNT(*) AS adet
-        FROM urun_yorumlari
-        WHERE urun_id IN ($yerTutucular)
-        GROUP BY urun_id
-    ");
-    $puanStmt->execute($idler);
-    foreach ($puanStmt->fetchAll() as $satir) {
-        $paketPuanlar[$satir['urun_id']] = [
-            'ortalama' => round((float)$satir['ortalama'], 1),
-            'adet'     => (int)$satir['adet'],
-        ];
-    }
-}
-
-// Toplam ürün sayısı (filtre sonucu)
-$toplamUrun = count($urunler);
-?>
-
 <main class="container py-4" id="urunler">
-    <?php if ($filtreAktif): ?>
+    <?php if ($urunlerGoster): ?>
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="section-baslik mb-0">
-            <?php echo htmlspecialchars(ucfirst($seciliKategori)); ?>
+            <?php echo $filtreAktif ? htmlspecialchars(ucfirst($seciliKategori)) : 'Tüm Ürünler'; ?>
             <span style="font-size:0.85rem;font-weight:400;color:var(--renk-metin-acik);margin-left:8px;">
                 (<?php echo $toplamUrun; ?> ürün)
             </span>
         </h2>
         <div class="d-flex gap-2 align-items-center">
-            <button class="filtre-mobil-btn" id="filtreMobilBtn">
+            <button class="filtre-mobil-btn d-lg-none" id="filtreMobilBtn" data-bs-toggle="offcanvas" data-bs-target="#filtreSidebar" aria-controls="filtreSidebar">
                 <i class="bi bi-funnel"></i> Filtrele
             </button>
             <a href="index.php#urunler" class="btn btn-outline-secondary btn-sm" style="border-radius:var(--yuvarlatma-kucuk);">
@@ -311,17 +124,22 @@ $toplamUrun = count($urunler);
     </div>
     <?php endif; ?>
 
-    <?php if ($filtreAktif): ?>
-    <!-- Kategoriye girildiğinde: Sol Filtre + Sağ Ürünler -->
+    <?php if ($urunlerGoster): ?>
+    <!-- Kategoriye girildiğinde veya "Tümü" seçildiğinde: Sol Filtre + Sağ Ürünler -->
     <div class="magaza-layout">
         <!-- Sol Filtre Sidebar -->
-        <aside class="filtre-sidebar" id="filtreSidebar">
+        <aside class="filtre-sidebar offcanvas-start offcanvas-lg" tabindex="-1" id="filtreSidebar" aria-labelledby="filtreSidebarLabel">
+            <div class="offcanvas-header d-lg-none">
+                <h5 class="offcanvas-title" id="filtreSidebarLabel">Filtrele</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filtreSidebar" aria-label="Kapat"></button>
+            </div>
+            <div class="offcanvas-body d-block p-lg-0">
             <!-- Kategoriler -->
             <div class="filtre-kart">
                 <div class="filtre-baslik"><i class="bi bi-grid"></i> Kategoriler</div>
                 <ul class="filtre-liste">
                     <li>
-                        <a href="index.php#urunler" class="<?php echo !$seciliKategori ? 'aktif' : ''; ?>">
+                        <a href="index.php?tumu=1#urunler" class="<?php echo !$seciliKategori ? 'aktif' : ''; ?>">
                             Tümü
                         </a>
                     </li>
@@ -343,6 +161,8 @@ $toplamUrun = count($urunler);
                 <form method="get" action="index.php">
                     <?php if ($seciliKategori): ?>
                         <input type="hidden" name="kategori" value="<?php echo htmlspecialchars($seciliKategori); ?>">
+                    <?php elseif ($tumuAktif): ?>
+                        <input type="hidden" name="tumu" value="1">
                     <?php endif; ?>
                     <input type="hidden" name="siralama" value="<?php echo htmlspecialchars($siralama); ?>">
                     <div class="filtre-fiyat-wrap">
@@ -354,7 +174,7 @@ $toplamUrun = count($urunler);
                     </div>
                     <button type="submit" class="filtre-uygula-btn">Uygula</button>
                     <?php if ($fiyatMin !== null || $fiyatMax !== null): ?>
-                        <a href="index.php?<?php echo http_build_query(array_filter(['kategori' => $seciliKategori, 'siralama' => $siralama])); ?>#urunler" class="filtre-temizle-link">
+                        <a href="index.php?<?php echo http_build_query(array_filter(['kategori' => $seciliKategori, 'tumu' => $tumuAktif ? 1 : null, 'siralama' => $siralama])); ?>#urunler" class="filtre-temizle-link">
                             Fiyat filtresini temizle
                         </a>
                     <?php endif; ?>
@@ -367,6 +187,8 @@ $toplamUrun = count($urunler);
                 <form method="get" action="index.php" id="siralamaForm">
                     <?php if ($seciliKategori): ?>
                         <input type="hidden" name="kategori" value="<?php echo htmlspecialchars($seciliKategori); ?>">
+                    <?php elseif ($tumuAktif): ?>
+                        <input type="hidden" name="tumu" value="1">
                     <?php endif; ?>
                     <?php if ($fiyatMin !== null): ?>
                         <input type="hidden" name="fiyat_min" value="<?php echo (int)$fiyatMin; ?>">
@@ -382,6 +204,7 @@ $toplamUrun = count($urunler);
                     </select>
                 </form>
             </div>
+            </div>
         </aside>
 
         <!-- Sağ: Ürün Grid -->
@@ -396,7 +219,7 @@ $toplamUrun = count($urunler);
                     <?php foreach ($urunler as $urun): ?>
                         <div class="col-6 col-md-4">
                             <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
-                                <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler) ? ' aktif' : ''; ?>" data-id="<?php echo $urun['id']; ?>" 
+                                <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler) ? ' aktif' : ''; ?>" data-id="<?php echo $urun['id']; ?>"
                                         onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
                                         title="Favorilere Ekle">
                                     <i class="bi <?php echo in_array($urun['id'], $favoriIdler) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
@@ -406,13 +229,10 @@ $toplamUrun = count($urunler);
                                 </div>
                                 <div class="urun-bilgi">
                                     <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
-                                    <span class="urun-fiyat">
-                                        <?php if ((float)$urun['fiyat_tl'] > 0): ?>
-                                            <?php echo number_format($urun['fiyat_tl'], 2, ',', '.'); ?> TL
-                                        <?php else: ?>
-                                            $<?php echo number_format($urun['fiyat_usd'], 2); ?>
-                                        <?php endif; ?>
-                                    </span>
+                                    <?php if ($urun['yildiz_ortalama'] !== null): ?>
+                                        <span class="urun-yildizlar"><?php echo yildizlar_html($urun['yildiz_ortalama']); ?></span>
+                                    <?php endif; ?>
+                                    <span class="urun-fiyat"><?php echo urun_fiyat_goster($urun); ?></span>
                                     <?php if ((int)$urun['miktar'] === 0): ?>
                                         <span class="urun-stok-yok">Stokta Yok</span>
                                     <?php endif; ?>
@@ -427,7 +247,7 @@ $toplamUrun = count($urunler);
 
     <?php endif; ?>
 
-    <?php if (!$filtreAktif && count($paketUrunleri) > 0): ?>
+    <?php if (!$urunlerGoster && count($paketUrunleri) > 0): ?>
 <section class="container py-5" id="paketBolumu">
     <h2 class="section-baslik text-center">Paket Yap, %30 Kazan</h2>
     <p class="text-center text-muted mb-4">3 ürün seçin, %30 indirim kazanın.</p>
@@ -447,11 +267,7 @@ $toplamUrun = count($urunler);
                         <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
                         <?php $puanBilgi = $paketPuanlar[$urun['id']] ?? null; ?>
                         <?php if ($puanBilgi): ?>
-                            <span class="paket-urun-yildiz">
-                                <?php for ($i = 1; $i <= 5; $i++): ?>
-                                    <i class="bi <?php echo $i <= round($puanBilgi['ortalama']) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                                <?php endfor; ?>
-                            </span>
+                            <span class="paket-urun-yildiz"><?php echo yildizlar_html($puanBilgi['ortalama']); ?></span>
                         <?php endif; ?>
                         <span class="urun-fiyat">$<?php echo number_format($urun['fiyat_usd'], 2); ?></span>
                     </div>
@@ -505,11 +321,7 @@ $toplamUrun = count($urunler);
             <div class="yorum-slider" id="yorumSlider">
                 <?php foreach ($musteriYorumlari as $yorum): ?>
                     <div class="yorum-kart">
-                        <div class="yorum-yildizlar">
-                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                <i class="bi <?php echo $i <= $yorum['rating'] ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                            <?php endfor; ?>
-                        </div>
+                        <div class="yorum-yildizlar"><?php echo yildizlar_html($yorum['rating']); ?></div>
                         <div class="yorum-isim">
                             <?php echo htmlspecialchars($yorum['reviewerName']); ?>
                             <span class="yorum-onay"><i class="bi bi-patch-check-fill"></i> Verified Buyer</span>

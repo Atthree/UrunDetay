@@ -60,16 +60,21 @@ if (girisYapmisMi()) {
             </a>
 
             <!-- Ana Navigasyon (Mega Menü) -->
-            <nav class="ana-nav" id="anaNav">
+            <nav class="ana-nav offcanvas-end offcanvas-md" tabindex="-1" id="anaNav" aria-labelledby="anaNavLabel">
+                <div class="offcanvas-header d-md-none">
+                    <h5 class="offcanvas-title" id="anaNavLabel">Menü</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#anaNav" aria-label="Kapat"></button>
+                </div>
+                <div class="offcanvas-body">
                 <div class="nav-item">
                     <a href="/UrunDetay/magaza/index.php">Ana Sayfa</a>
                 </div>
 
-                <div class="nav-item">
-                    <a href="#urunler" class="mega-trigger">
+                <div class="nav-item dropdown">
+                    <a href="#urunler" class="mega-trigger dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Ürünler <i class="bi bi-chevron-down"></i>
                     </a>
-                    <div class="mega-menu">
+                    <div class="dropdown-menu mega-menu" data-bs-display="static">
                         <div class="mega-menu-baslik">Kategoriler</div>
                         <div class="mega-menu-grid">
                             <?php foreach ($kategoriMenusu as $km): ?>
@@ -81,7 +86,7 @@ if (girisYapmisMi()) {
                                     </span>
                                 </a>
                             <?php endforeach; ?>
-                            <a href="/UrunDetay/magaza/index.php#urunler" class="mega-menu-link">
+                            <a href="/UrunDetay/magaza/index.php?tumu=1#urunler" class="mega-menu-link">
                                 <span class="mega-ikon"><i class="bi bi-grid"></i></span>
                                 <span>Tüm Ürünler</span>
                             </a>
@@ -95,12 +100,13 @@ if (girisYapmisMi()) {
                 <div class="nav-item">
                     <a href="#">İletişim</a>
                 </div>
+                </div>
             </nav>
 
             <!-- Sağ Üst İkonlar -->
             <div class="header-ikonlar">
                 <!-- Arama -->
-                <button class="header-ikon-btn" id="aramaAcBtn" title="Ara">
+                <button class="header-ikon-btn" id="aramaAcBtn" data-bs-toggle="modal" data-bs-target="#aramaModal" title="Ara">
                     <i class="bi bi-search"></i>
                 </button>
 
@@ -124,13 +130,13 @@ if (girisYapmisMi()) {
                 
 
                 <!-- Sepet -->
-                <button class="header-ikon-btn" id="sepetAcBtn" title="Sepetim">
+                <button class="header-ikon-btn" id="sepetAcBtn" data-bs-toggle="offcanvas" data-bs-target="#sepetSidebar" title="Sepetim">
                     <i class="bi bi-bag"></i>
                     <span class="badge-sayi" id="sepetBadge">0</span>
                 </button>
 
                 <!-- Mobil Hamburger -->
-                <button class="hamburger-btn" id="hamburgerBtn" title="Menü">
+                <button class="navbar-toggler hamburger-btn d-md-none" type="button" id="hamburgerBtn" data-bs-toggle="offcanvas" data-bs-target="#anaNav" aria-controls="anaNav" title="Menü">
                     <i class="bi bi-list"></i>
                 </button>
             </div>
@@ -138,43 +144,46 @@ if (girisYapmisMi()) {
     </div>
 </header>
 
-<!-- Arama Overlay -->
-<div class="arama-overlay" id="aramaOverlay">
-    <div class="arama-kutu">
-        <div class="arama-input-wrap">
-            <i class="bi bi-search"></i>
-            <input type="text" id="aramaInput" placeholder="Ürün, kategori veya marka ara..." autocomplete="off">
-            <button class="header-ikon-btn" id="aramaKapatBtn" style="width:32px;height:32px;font-size:1rem;">
-                <i class="bi bi-x-lg"></i>
-            </button>
+<!-- Arama Modal -->
+<div class="modal fade" id="aramaModal" tabindex="-1" aria-labelledby="aramaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered arama-kutu-wrap">
+        <div class="modal-content arama-kutu">
+            <div class="arama-input-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" id="aramaInput" placeholder="Ürün, kategori veya marka ara..." autocomplete="off">
+                <button class="header-ikon-btn" data-bs-dismiss="modal" style="width:32px;height:32px;font-size:1rem;" aria-label="Kapat">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="arama-sonuclar" id="aramaSonuclar" style="display:none;"></div>
         </div>
-        <div class="arama-sonuclar" id="aramaSonuclar" style="display:none;"></div>
     </div>
 </div>
 
 <!-- Sepet Sidebar -->
-<div class="sepet-sidebar-overlay" id="sepetOverlay"></div>
-<aside class="sepet-sidebar" id="sepetSidebar">
-    <div class="sepet-header">
-        <h3><i class="bi bi-bag"></i> Sepetim</h3>
-        <button class="sepet-kapat" id="sepetKapatBtn"><i class="bi bi-x-lg"></i></button>
+<div class="offcanvas offcanvas-end sepet-sidebar" tabindex="-1" id="sepetSidebar" aria-labelledby="sepetSidebarLabel">
+    <div class="offcanvas-header sepet-header">
+        <h3 class="offcanvas-title" id="sepetSidebarLabel"><i class="bi bi-bag"></i> Sepetim</h3>
+        <button type="button" class="sepet-kapat" data-bs-dismiss="offcanvas" aria-label="Kapat"><i class="bi bi-x-lg"></i></button>
     </div>
-    <div class="sepet-icerik" id="sepetIcerik">
-        <div class="sepet-bos">
-            <i class="bi bi-bag-x"></i>
-            <p>Sepetiniz boş</p>
+    <div class="offcanvas-body d-flex flex-column p-0">
+        <div class="sepet-icerik" id="sepetIcerik">
+            <div class="sepet-bos">
+                <i class="bi bi-bag-x"></i>
+                <p>Sepetiniz boş</p>
+            </div>
+        </div>
+        <div class="sepet-alt" id="sepetAlt" style="display:none;">
+            <div class="sepet-toplam">
+                <span>Toplam</span>
+                <span class="tutar" id="sepetToplam">0,00 TL</span>
+            </div>
+            <button class="sepet-satin-al-btn">
+                <i class="bi bi-lock"></i> Güvenli Ödemeye Geç
+            </button>
         </div>
     </div>
-    <div class="sepet-alt" id="sepetAlt" style="display:none;">
-        <div class="sepet-toplam">
-            <span>Toplam</span>
-            <span class="tutar" id="sepetToplam">0,00 TL</span>
-        </div>
-        <button class="sepet-satin-al-btn">
-            <i class="bi bi-lock"></i> Güvenli Ödemeye Geç
-        </button>
-    </div>
-</aside>
+</div>
 
 <!-- Bildirim Toast -->
 <div class="bildirim-toast" id="bildirimToast">

@@ -1,23 +1,13 @@
 <?php require_once __DIR__ . '/includes/header.php'; ?>
 
 <?php
-// Ürün bilgilerini çek
 $urun = null;
-$ekResimler = [];
 
 if (!empty($_GET['id'])) {
     $id = (int)$_GET['id'];
-
     $stmt = $pdo->prepare("SELECT * FROM urunler WHERE id = :id AND durum = 1");
     $stmt->execute([':id' => $id]);
     $urun = $stmt->fetch();
-
-    if ($urun) {
-        // Ek resimleri çek
-        $stmt2 = $pdo->prepare("SELECT * FROM urun_resimler WHERE urun_id = :id ORDER BY sira");
-        $stmt2->execute([':id' => $id]);
-        $ekResimler = $stmt2->fetchAll();
-    }
 }
 
 if (!$urun) {
@@ -30,81 +20,8 @@ if (!$urun) {
     exit;
 }
 
-// Fiyat hesaplama
-// Fiyat hesaplama
-$fiyatTl = (float)$urun['fiyat_tl'];
-$fiyatUsd = (float)$urun['fiyat_usd'];
-$paraBirimi = $fiyatTl > 0 ? 'TL' : 'USD';
-$fiyat = $paraBirimi === 'TL' ? $fiyatTl : $fiyatUsd;
-$eskiFiyat = (float)($urun['fiyat2_tl'] ?? 0);
-$stokVar = (int)$urun['miktar'] > 0;
-
-// Bu ürün, giriş yapan kullanıcının favorisinde mi?
-$favoride = false;
-if (girisYapmisMi()) {
-    $favKontrol = $pdo->prepare("SELECT id FROM favoriler WHERE kullanici_id = :kid AND urun_id = :uid");
-    $favKontrol->execute([':kid' => $_SESSION['kullanici_id'], ':uid' => $urun['id']]);
-    $favoride = (bool)$favKontrol->fetch();
-}
-
-// Benzer ürünler (aynı kategori)
-$benzerUrunler = [];
-if (!empty($urun['kategori'])) {
-    $stmtBenzer = $pdo->prepare("
-        SELECT * FROM urunler 
-        WHERE kategori = :kategori AND id != :id AND durum = 1 
-        ORDER BY RAND() 
-        LIMIT 4
-    ");
-    $stmtBenzer->execute([':kategori' => $urun['kategori'], ':id' => $urun['id']]);
-    $benzerUrunler = $stmtBenzer->fetchAll();
-}
+require_once __DIR__ . '/includes/urun-detay-veri.php';
 ?>
-<?php
-// Ürün Yorumları — veritabanından çek
-$yorumStmt = $pdo->prepare("
-    SELECT uy.*, COALESCE(k.ad_soyad, uy.reviewer_adi) AS yazan_ad
-    FROM urun_yorumlari uy
-    LEFT JOIN kullanicilar k ON k.id = uy.kullanici_id
-    WHERE uy.urun_id = :id
-    ORDER BY uy.olusturma_tarihi DESC
-");
-$yorumStmt->execute([':id' => $urun['id']]);
-$urunYorumlari = $yorumStmt->fetchAll();
-
-$ozetStmt = $pdo->prepare("
-    SELECT puan, COUNT(*) AS adet
-    FROM urun_yorumlari
-    WHERE urun_id = :id
-    GROUP BY puan
-");
-$ozetStmt->execute([':id' => $urun['id']]);
-$ozetSonuc = $ozetStmt->fetchAll();
-
-$dagilim = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
-$yorumSayisi = 0;
-$toplamPuan = 0;
-
-foreach ($ozetSonuc as $satir) {
-    $p = (int)$satir['puan'];
-    $adet = (int)$satir['adet'];
-    if (isset($dagilim[$p])) {
-        $dagilim[$p] = $adet;
-        $yorumSayisi += $adet;
-        $toplamPuan += $p * $adet;
-    }
-}
-
-$ortalamaPuan = $yorumSayisi > 0 ? round($toplamPuan / $yorumSayisi, 1) : 0;
-
-$dahaOnceYorumYapmis = false;
-if (girisYapmisMi()) {
-    $kontrolStmt = $pdo->prepare("SELECT id FROM urun_yorumlari WHERE urun_id = :uid AND kullanici_id = :kid");
-    $kontrolStmt->execute([':uid' => $urun['id'], ':kid' => $_SESSION['kullanici_id']]);
-    $dahaOnceYorumYapmis = (bool)$kontrolStmt->fetch();
-}
-?>
-
 
 <div class="container">
     <!-- Breadcrumb -->
@@ -158,11 +75,7 @@ if (girisYapmisMi()) {
             <h1 class="urun-detay-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></h1>
             <?php if ($yorumSayisi > 0): ?>
             <div class="urun-detay-puan">
-                <span class="urun-detay-yildizlar">
-                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <i class="bi <?php echo $i <= round($ortalamaPuan) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                    <?php endfor; ?>
-                </span>
+                <span class="urun-detay-yildizlar"><?php echo yildizlar_html($ortalamaPuan); ?></span>
                 <a href="#yorumlar" class="urun-detay-puan-sayi">
                     <?php echo $yorumSayisi; ?> review<?php echo $yorumSayisi > 1 ? 's' : ''; ?>
                 </a>
@@ -277,9 +190,7 @@ if (girisYapmisMi()) {
         <div class="yorum-ozet-grid">
             <div class="yorum-ozet-sol">
                 <div class="yorum-yildiz-buyuk">
-                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <i class="bi <?php echo $i <= round($ortalamaPuan) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                    <?php endfor; ?>
+                    <?php echo yildizlar_html($ortalamaPuan); ?>
                     <span class="yorum-puan-sayi"><?php echo $ortalamaPuan; ?> out of 5</span>
                 </div>
                 <p class="yorum-toplam-metin">Based on <?php echo $yorumSayisi; ?> review<?php echo $yorumSayisi > 1 ? 's' : ''; ?></p>
@@ -288,11 +199,7 @@ if (girisYapmisMi()) {
             <div class="yorum-ozet-orta">
                 <?php for ($star = 5; $star >= 1; $star--): ?>
                     <div class="yorum-dagilim-satir">
-                        <span class="yorum-dagilim-yildiz">
-                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                <i class="bi <?php echo $i <= $star ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                            <?php endfor; ?>
-                        </span>
+                        <span class="yorum-dagilim-yildiz"><?php echo yildizlar_html($star); ?></span>
                         <div class="yorum-dagilim-bar">
                             <div class="yorum-dagilim-dolu" style="width:<?php echo $yorumSayisi > 0 ? round(($dagilim[$star] / $yorumSayisi) * 100) : 0; ?>%;"></div>
                         </div>
@@ -316,11 +223,7 @@ if (girisYapmisMi()) {
             <?php foreach ($urunYorumlari as $y): ?>
                 <div class="yorum-liste-item">
                     <div class="yorum-liste-ust">
-                        <span class="yorum-liste-yildiz">
-                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                <i class="bi <?php echo $i <= (int)$y['puan'] ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                            <?php endfor; ?>
-                        </span>
+                        <span class="yorum-liste-yildiz"><?php echo yildizlar_html((int)$y['puan']); ?></span>
                         <span class="yorum-liste-tarih">
                             <?php echo date('F j, Y', strtotime($y['olusturma_tarihi'])); ?>
                         </span>
@@ -381,22 +284,14 @@ if (girisYapmisMi()) {
                             </div>
                             <div class="urun-bilgi">
                                 <span class="urun-baslik"><?php echo htmlspecialchars($b['baslik_tr']); ?></span>
-                                <span class="urun-fiyat">
-                                    <?php if ((float)$b['fiyat_tl'] > 0): ?>
-                                        <?php echo number_format($b['fiyat_tl'], 2, ',', '.'); ?> TL
-                                    <?php else: ?>
-                                        $<?php echo number_format($b['fiyat_usd'], 2); ?>
-                                    <?php endif; ?>
-                                </span>
+                                <span class="urun-fiyat"><?php echo urun_fiyat_goster($b); ?></span>
                             </div>
                         </a>
                     </div>
                 <?php endforeach; ?>
             </div>
         </section>
-        
     <?php endif; ?>
-    
 </div>
 
 <script>

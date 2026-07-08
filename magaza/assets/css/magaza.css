@@ -82,18 +82,12 @@ body {
     color: var(--renk-vurgu);
 }
 
-/* Ana Navigasyon */
-.ana-nav {
-    display: flex;
-    align-items: center;
-    gap: 0;
-}
-
-.ana-nav>.nav-item {
+/* Ana Navigasyon (Bootstrap .offcanvas offcanvas-md; masaüstünde normal yatay nav'a döner) */
+.ana-nav .nav-item {
     position: relative;
 }
 
-.ana-nav>.nav-item>a {
+.ana-nav .nav-item > a {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -107,31 +101,49 @@ body {
     white-space: nowrap;
 }
 
-.ana-nav>.nav-item>a:hover {
+.ana-nav .nav-item > a:hover {
     color: var(--renk-vurgu);
     background: rgba(233, 69, 96, 0.06);
 }
 
-.ana-nav>.nav-item>a .bi-chevron-down {
+.ana-nav .nav-item > a .bi-chevron-down {
     font-size: 0.65rem;
     transition: transform 0.3s ease;
 }
 
-/* Mega Menü */
+/* ≥768px: offcanvas-md devreye girmeden önce ana-nav'ın kendisi normal akışa döner;
+   asıl yatay hizalamayı offcanvas-body üstlenir. */
+@media (min-width: 768px) {
+    .ana-nav .offcanvas-body {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 0;
+        overflow: visible;
+    }
+}
+
+/* Mega Menü (Bootstrap dropdown-menu; data-bs-display="static" ile kendi konumlandırmamız korunuyor) */
 .mega-menu {
     position: absolute;
     top: 100%;
     left: 50%;
-    transform: translateX(-50%) translateY(8px);
+    transform: translateX(-50%);
+    margin-top: 8px;
     min-width: 520px;
     background: var(--renk-beyaz);
     border-radius: var(--yuvarlatma);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
     padding: 24px;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
     z-index: 1100;
+}
+
+.mega-trigger.dropdown-toggle::after {
+    display: none;
+}
+
+.mega-trigger[aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
 }
 
 .mega-menu::before {
@@ -146,21 +158,6 @@ body {
     border-radius: 3px;
     transform: translateX(-50%) rotate(45deg);
     box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.05);
-}
-
-/* Hover köprü alanı — menü ile link arasındaki boşlukta menünün kaybolmaması */
-.ana-nav>.nav-item:hover>.mega-menu,
-.ana-nav>.nav-item>a:hover+.mega-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(0);
-}
-
-/* Üst link ile mega menu arasındaki bridge area */
-.nav-item:hover .mega-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) translateY(0);
 }
 
 .mega-menu-baslik {
@@ -275,43 +272,16 @@ body {
     transform: scale(1);
 }
 
-/* Arama Overlay */
-.arama-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 2000;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 120px;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s;
-}
-
-.arama-overlay.aktif {
-    opacity: 1;
-    visibility: visible;
+/* Arama Modal (Bootstrap .modal) */
+.arama-kutu-wrap {
+    max-width: 640px;
 }
 
 .arama-kutu {
-    width: 90%;
-    max-width: 640px;
-    background: var(--renk-beyaz);
+    border: none;
     border-radius: 16px;
     padding: 8px;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
-    transform: translateY(-20px) scale(0.97);
-    transition: transform 0.3s ease;
-}
-
-.arama-overlay.aktif .arama-kutu {
-    transform: translateY(0) scale(1);
 }
 
 .arama-input-wrap {
@@ -392,9 +362,8 @@ body {
     font-size: 0.9rem;
 }
 
-/* Mobil Hamburger */
+/* Mobil Hamburger (Bootstrap .navbar-toggler; görünürlük d-md-none ile) */
 .hamburger-btn {
-    display: none;
     border: none;
     background: transparent;
     font-size: 1.5rem;
@@ -403,42 +372,13 @@ body {
     padding: 8px;
 }
 
-/* Sepet Sidebar */
+.hamburger-btn:focus {
+    box-shadow: none;
+}
+
+/* Sepet Sidebar (Bootstrap .offcanvas; pozisyon/animasyon Bootstrap'tan geliyor) */
 .sepet-sidebar {
-    position: fixed;
-    top: 0;
-    right: -420px;
-    width: 400px;
     max-width: 90vw;
-    height: 100vh;
-    background: var(--renk-beyaz);
-    z-index: 2100;
-    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
-    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-}
-
-.sepet-sidebar.aktif {
-    right: 0;
-}
-
-.sepet-sidebar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 2050;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s;
-}
-
-.sepet-sidebar-overlay.aktif {
-    opacity: 1;
-    visibility: visible;
 }
 
 .sepet-header {
@@ -851,14 +791,19 @@ body {
     gap: 30px;
 }
 
-.filtre-sidebar {
-    width: 260px;
-    flex-shrink: 0;
-    position: sticky;
-    top: 90px;
-    align-self: flex-start;
-    max-height: calc(100vh - 110px);
-    overflow-y: auto;
+/* ≥992px: offcanvas-lg normal akışa döner, sabit sticky sütun görünümü burada tanımlanıyor.
+   Bilinçli olarak min-width sorgusuna alındı ki <992px'de Bootstrap'ın offcanvas
+   konumlandırması (position:fixed vb.) bu kurallarla çakışmasın. */
+@media (min-width: 992px) {
+    .filtre-sidebar {
+        width: 260px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 90px;
+        align-self: flex-start;
+        max-height: calc(100vh - 110px);
+        overflow-y: auto;
+    }
 }
 
 .filtre-kart {
@@ -999,9 +944,9 @@ body {
     min-width: 0;
 }
 
-/* Filtre Mobil Toggle */
+/* Filtre Mobil Toggle (görünürlük markup'taki d-lg-none ile) */
 .filtre-mobil-btn {
-    display: none;
+    display: flex;
     align-items: center;
     gap: 6px;
     padding: 10px 18px;
@@ -1434,27 +1379,9 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 
+    /* <992px: .offcanvas-lg devreye girer, kayan panel içi görünüm */
     .filtre-sidebar {
-        position: fixed;
-        top: 0;
-        left: -300px;
-        width: 280px;
-        height: 100vh;
-        z-index: 1500;
-        background: var(--renk-beyaz);
         padding: 20px;
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
-        transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        max-height: 100vh;
-        overflow-y: auto;
-    }
-
-    .filtre-sidebar.aktif {
-        left: 0;
-    }
-
-    .filtre-mobil-btn {
-        display: flex;
     }
 
     .urun-detay-wrap {
@@ -1480,25 +1407,12 @@ body {
         font-size: 1.9rem;
     }
 
-    .ana-nav {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
+    /* <768px: #anaNav Bootstrap .offcanvas-md ile tam genişlik kayan panel olur */
+    #anaNav.offcanvas-md {
         width: 100%;
-        height: 100vh;
-        background: var(--renk-beyaz);
-        flex-direction: column;
-        padding: 80px 24px 24px;
-        z-index: 900;
-        gap: 0;
     }
 
-    .ana-nav.aktif {
-        display: flex;
-    }
-
-    .ana-nav>.nav-item>a {
+    .ana-nav .nav-item > a {
         padding: 14px 0;
         font-size: 1.05rem;
         border-bottom: 1px solid var(--renk-kenar);
@@ -1507,28 +1421,17 @@ body {
     .mega-menu {
         position: static;
         transform: none;
-        opacity: 1;
-        visibility: visible;
         box-shadow: none;
         padding: 10px 0 10px 16px;
         min-width: 100%;
-        display: none;
     }
 
     .mega-menu::before {
         display: none;
     }
 
-    .mega-menu.aktif {
-        display: block;
-    }
-
     .mega-menu-grid {
         grid-template-columns: 1fr;
-    }
-
-    .hamburger-btn {
-        display: block;
     }
 
     .urun-ozellikler {
@@ -1795,6 +1698,10 @@ body {
     .kategori-panel-alani .urun-resim {
         height: 200px;
     }
+
+    .paket-urun-kart .urun-resim {
+        height: 200px;
+    }
 }
 
 /* ==========================================
@@ -1825,7 +1732,7 @@ body {
 }
 
 .paket-urun-kart .urun-resim {
-    height: 180px;
+    height: 360px;
 }
 
 .paket-urun-kart .urun-bilgi {
@@ -1858,7 +1765,7 @@ body {
 }
 
 .paket-ozet {
-    width: 300px;
+    width: 340px;
     flex-shrink: 0;
     position: sticky;
     top: 90px;
@@ -1866,20 +1773,20 @@ body {
     background: var(--renk-beyaz);
     border: 1px solid var(--renk-kenar);
     border-radius: var(--yuvarlatma);
-    padding: 22px;
+    padding: 28px;
     box-shadow: 0 2px 8px var(--renk-golge);
 }
 
 .paket-ozet-baslik {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     font-weight: 700;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .paket-ozet-aciklama {
-    font-size: 0.85rem;
+    font-size: 0.92rem;
     color: var(--renk-metin-acik);
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
 .paket-ozet-liste {
@@ -1899,8 +1806,8 @@ body {
 }
 
 .paket-ozet-urun img {
-    width: 44px;
-    height: 44px;
+    width: 52px;
+    height: 52px;
     object-fit: cover;
     border-radius: 8px;
     background: var(--renk-arka);
@@ -1908,7 +1815,7 @@ body {
 
 .paket-ozet-urun .ad {
     flex: 1;
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1935,8 +1842,8 @@ body {
 .paket-ozet-satir {
     display: flex;
     justify-content: space-between;
-    font-size: 0.9rem;
-    margin-bottom: 8px;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
 }
 
 .paket-indirim-satiri {
@@ -1945,14 +1852,14 @@ body {
 }
 
 .paket-toplam-satiri {
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 700;
     margin-top: 4px;
 }
 
 .paket-sepete-ekle-btn {
     width: 100%;
-    padding: 13px;
+    padding: 15px;
     border: none;
     background: var(--renk-birincil);
     color: white;

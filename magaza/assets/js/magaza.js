@@ -165,67 +165,29 @@ function sepetSidebarGuncelle() {
     };
 
     // ==========================================
-    // SEPET SİDEBAR AÇ/KAPA
+    // SEPET SİDEBAR (Bootstrap Offcanvas)
     // ==========================================
 
-    const sepetAcBtn = document.getElementById('sepetAcBtn');
-    const sepetSidebar = document.getElementById('sepetSidebar');
-    const sepetOverlay = document.getElementById('sepetOverlay');
-    const sepetKapatBtn = document.getElementById('sepetKapatBtn');
+    const sepetSidebarEl = document.getElementById('sepetSidebar');
 
     function sepetAc() {
-        sepetSidebar?.classList.add('aktif');
-        sepetOverlay?.classList.add('aktif');
-        document.body.style.overflow = 'hidden';
+        if (sepetSidebarEl) bootstrap.Offcanvas.getOrCreateInstance(sepetSidebarEl).show();
     }
 
-    function sepetKapat() {
-        sepetSidebar?.classList.remove('aktif');
-        sepetOverlay?.classList.remove('aktif');
-        document.body.style.overflow = '';
-    }
-
-    sepetAcBtn?.addEventListener('click', sepetAc);
-    sepetKapatBtn?.addEventListener('click', sepetKapat);
-    sepetOverlay?.addEventListener('click', sepetKapat);
-
     // ==========================================
-    // ARAMA OVERLAY
+    // ARAMA MODAL (Bootstrap Modal)
     // ==========================================
 
-    const aramaAcBtn = document.getElementById('aramaAcBtn');
-    const aramaOverlay = document.getElementById('aramaOverlay');
-    const aramaKapatBtn = document.getElementById('aramaKapatBtn');
+    const aramaModalEl = document.getElementById('aramaModal');
     const aramaInput = document.getElementById('aramaInput');
     const aramaSonuclar = document.getElementById('aramaSonuclar');
 
-    function aramaAc() {
-        aramaOverlay?.classList.add('aktif');
-        document.body.style.overflow = 'hidden';
-        setTimeout(() => aramaInput?.focus(), 300);
-    }
-
-    function aramaKapat() {
-        aramaOverlay?.classList.remove('aktif');
-        document.body.style.overflow = '';
+    aramaModalEl?.addEventListener('shown.bs.modal', () => aramaInput?.focus());
+    aramaModalEl?.addEventListener('hidden.bs.modal', () => {
         if (aramaInput) aramaInput.value = '';
         if (aramaSonuclar) {
             aramaSonuclar.style.display = 'none';
             aramaSonuclar.innerHTML = '';
-        }
-    }
-
-    aramaAcBtn?.addEventListener('click', aramaAc);
-    aramaKapatBtn?.addEventListener('click', aramaKapat);
-    aramaOverlay?.addEventListener('click', function (e) {
-        if (e.target === aramaOverlay) aramaKapat();
-    });
-
-    // ESC tuşu ile kapatma
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            aramaKapat();
-            sepetKapat();
         }
     });
 
@@ -277,59 +239,33 @@ function sepetSidebarGuncelle() {
     });
 
     // ==========================================
-    // MEGA MENÜ — Mobilde tıklama desteği
+    // MEGA MENÜ (Bootstrap Dropdown) — masaüstünde hover ile açılma
     // ==========================================
 
-    const megaTriggers = document.querySelectorAll('.mega-trigger');
-    megaTriggers.forEach(trigger => {
-        trigger.addEventListener('click', function (e) {
-            if (window.innerWidth <= 767) {
-                e.preventDefault();
-                const megaMenu = this.nextElementSibling;
-                if (megaMenu?.classList.contains('mega-menu')) {
-                    megaMenu.classList.toggle('aktif');
-                    const chevron = this.querySelector('.bi-chevron-down');
-                    if (chevron) {
-                        chevron.style.transform = megaMenu.classList.contains('aktif') ? 'rotate(180deg)' : '';
-                    }
-                }
-            }
+    document.querySelectorAll('.nav-item.dropdown').forEach(item => {
+        const toggleEl = item.querySelector('[data-bs-toggle="dropdown"]');
+        if (!toggleEl) return;
+        const dropdown = bootstrap.Dropdown.getOrCreateInstance(toggleEl);
+
+        item.addEventListener('mouseenter', () => {
+            if (window.innerWidth >= 768) dropdown.show();
+        });
+        item.addEventListener('mouseleave', () => {
+            if (window.innerWidth >= 768) dropdown.hide();
         });
     });
 
-    // Hamburger Menü
+    // Hamburger Menü — ikon değişimi (Bootstrap Offcanvas event'leri)
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const anaNav = document.getElementById('anaNav');
 
-    hamburgerBtn?.addEventListener('click', function () {
-        anaNav?.classList.toggle('aktif');
-        const icon = this.querySelector('i');
-        if (anaNav?.classList.contains('aktif')) {
-            icon.className = 'bi bi-x-lg';
-        } else {
-            icon.className = 'bi bi-list';
-        }
+    anaNav?.addEventListener('show.bs.offcanvas', () => {
+        const icon = hamburgerBtn?.querySelector('i');
+        if (icon) icon.className = 'bi bi-x-lg';
     });
-
-    // ==========================================
-    // FİLTRE SIDEBAR — Mobil açma/kapama
-    // ==========================================
-
-    const filtreMobilBtn = document.getElementById('filtreMobilBtn');
-    const filtreSidebar = document.getElementById('filtreSidebar');
-
-    filtreMobilBtn?.addEventListener('click', function () {
-        filtreSidebar?.classList.toggle('aktif');
-    });
-
-    // Sidebar dışına tıklanınca kapat
-    document.addEventListener('click', function (e) {
-        if (filtreSidebar?.classList.contains('aktif') &&
-            !filtreSidebar.contains(e.target) &&
-            e.target !== filtreMobilBtn &&
-            !filtreMobilBtn?.contains(e.target)) {
-            filtreSidebar.classList.remove('aktif');
-        }
+    anaNav?.addEventListener('hidden.bs.offcanvas', () => {
+        const icon = hamburgerBtn?.querySelector('i');
+        if (icon) icon.className = 'bi bi-list';
     });
 
     // ==========================================
