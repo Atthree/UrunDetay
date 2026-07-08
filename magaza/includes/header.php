@@ -22,21 +22,22 @@ if (girisYapmisMi()) {
 // Sayfa açılışında sepeti JS'e aktarmak için çekiyoruz
 $sepetOgeleri = [];
 if (girisYapmisMi()) {
+    sepet_fazla_paketleri_temizle($pdo, $_SESSION['kullanici_id']);
+
     $sepetStmt = $pdo->prepare("
-        SELECT s.urun_id AS id, s.adet, u.baslik_tr AS baslik, u.fiyat_usd AS fiyat, u.ana_resim AS resim
+        SELECT s.urun_id, s.adet, s.paket_id, u.baslik_tr AS baslik, COALESCE(s.birim_fiyat, u.fiyat_usd) AS fiyat, u.ana_resim AS resim
         FROM sepet s
         INNER JOIN urunler u ON u.id = s.urun_id
         WHERE s.kullanici_id = :kid
         ORDER BY s.eklenme_tarihi DESC
     ");
     $sepetStmt->execute([':kid' => $_SESSION['kullanici_id']]);
-    $sepetOgeleri = $sepetStmt->fetchAll();
-    foreach ($sepetOgeleri as &$oge) {
-        $oge['resim'] = resim_url($oge['resim']);
-        $oge['adet'] = (int)$oge['adet'];
-        $oge['fiyat'] = (float)$oge['fiyat'];
+    $sepetSatirlari = $sepetStmt->fetchAll();
+    foreach ($sepetSatirlari as &$satir) {
+        $satir['resim'] = resim_url($satir['resim']);
     }
-    unset($oge);
+    unset($satir);
+    $sepetOgeleri = sepeti_grupla($sepetSatirlari);
 }
 ?>
 <!DOCTYPE html>
@@ -47,6 +48,7 @@ if (girisYapmisMi()) {
     <title>Mağazam</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/UrunDetay/magaza/assets/css/magaza.css">
 </head>
 <body>
@@ -112,17 +114,17 @@ if (girisYapmisMi()) {
 
                 <!-- Profil -->
                 <?php if (girisYapmisMi()): ?>
-                    <a href="/UrunDetay/magaza/profil.php" class="header-ikon-btn" title="Hesabım (<?php echo htmlspecialchars($_SESSION['kullanici_ad']); ?>)">
+                    <a href="/UrunDetay/magaza/profil.php" class="header-ikon-btn sadece-desktop-ikon" title="Hesabım (<?php echo htmlspecialchars($_SESSION['kullanici_ad']); ?>)">
                         <i class="bi bi-person-check-fill"></i>
                     </a>
                 <?php else: ?>
-                    <a href="/UrunDetay/magaza/giris.php" class="header-ikon-btn" title="Giriş Yap">
+                    <a href="/UrunDetay/magaza/giris.php" class="header-ikon-btn sadece-desktop-ikon" title="Giriş Yap">
                         <i class="bi bi-person"></i>
                     </a>
                 <?php endif; ?>
 
                 <!-- Favoriler -->
-                <a href="<?php echo girisYapmisMi() ? '/UrunDetay/magaza/favorilerim.php' : '/UrunDetay/magaza/giris.php'; ?>" class="header-ikon-btn" id="favoriBtn" title="Favorilerim">
+                <a href="<?php echo girisYapmisMi() ? '/UrunDetay/magaza/favorilerim.php' : '/UrunDetay/magaza/giris.php'; ?>" class="header-ikon-btn sadece-desktop-ikon" id="favoriBtn" title="Favorilerim">
                     <i class="bi bi-heart"></i>
                     <span class="badge-sayi" id="favoriBadge"><?php echo $favoriSayisi ?? 0; ?></span>
                     

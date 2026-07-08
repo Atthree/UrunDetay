@@ -37,6 +37,49 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
 </section>
 <?php endif; ?>
 
+<!-- Kategori Vitrinleri -->
+<?php
+$vitrinKategorileri = ['kitchen-accessories', 'groceries', 'mens-watches', 'beauty'];
+$vitrinBaslik = [
+    'kitchen-accessories' => 'Mutfak Aksesuarları',
+    'groceries'           => 'Market Ürünleri',
+    'mens-watches'        => 'Erkek Saatleri',
+    'beauty'              => 'Güzellik Ürünleri',
+];
+$vitrinSayilari = array_column($kategoriler, 'urun_sayisi', 'kategori');
+$vitrinGorselleri = [
+    'kitchen-accessories' => '/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg',
+    'groceries'           => '/UrunDetay/magaza/assets/img/MarketUrunleri.jpg',
+    'mens-watches'        => '/UrunDetay/magaza/assets/img/ErkekSaatleri.jpg',
+    'beauty'              => '/UrunDetay/magaza/assets/img/GuzellikUrunleri.jpg',
+];
+?>
+<?php if (!$urunlerGoster): ?>
+<section class="category-highlights" id="kategoriVitrinSatiri">
+    <div class="container">
+        <h2 class="category-highlights-baslik">Kategori Vitrinleri</h2>
+        <p class="category-highlights-aciklama">Size özel seçilmiş kategorilerle alışverişin keyfini çıkarın.</p>
+
+        <div class="category-highlights-grid kategori-vitrin-grid">
+            <?php foreach ($vitrinKategorileri as $vk): ?>
+                <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart">
+                    <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel">
+                    <div class="category-highlight-overlay"></div>
+                    <div class="category-highlight-metin">
+                        <span class="category-highlight-ad">
+                            <?php echo htmlspecialchars($vitrinBaslik[$vk]); ?><sup><?php echo (int)($vitrinSayilari[$vk] ?? 0); ?></sup>
+                        </span>
+                        <span class="category-highlight-slogan">Mağazam—kaliteli ve güvenilir alışveriş.</span>
+                    </div>
+                </a>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="kategori-vitrin-noktalar" id="kategoriVitrinNoktalar"></div>
+    </div>
+</section>
+<?php endif; ?>
+
 <!-- Öne Çıkan Kategoriler (sekmeli, ilk sekme dışında AJAX ile yüklenir) -->
 <?php if (!$urunlerGoster && count($oneCikanKategoriler) > 0): ?>
 <section class="container py-5">
@@ -56,8 +99,20 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
         <div class="kategori-spinner" id="kategoriSpinner"></div>
         <div class="row g-4" id="kategoriUrunGrid">
             <?php foreach ($ilkKategoriUrunleri as $urun): ?>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-3 kategori-urun-slayt">
                     <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
+                        <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler ?? []) ? ' aktif' : ''; ?>"
+                                data-id="<?php echo $urun['id']; ?>"
+                                onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
+                                title="Favorilere Ekle">
+                            <i class="bi <?php echo in_array($urun['id'], $favoriIdler ?? []) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
+                        </button>
+                        <button class="hizli-sepet-btn"
+                                data-id="<?php echo $urun['id']; ?>"
+                                onclick="event.preventDefault();event.stopPropagation();window.hizliSepeteEkle(<?php echo $urun['id']; ?>, this);"
+                                title="Sepete Ekle">
+                            <i class="bi bi-bag-plus"></i>
+                        </button>
                         <div class="urun-resim-wrap">
                             <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
                         </div>
@@ -75,6 +130,8 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <div class="kategori-urun-noktalar" id="kategoriUrunNoktalar"></div>
 
         <div class="text-center mt-4">
             <a href="index.php?kategori=<?php echo urlencode($oneCikanKategoriler[0]['kategori']); ?>#urunler"
@@ -104,12 +161,51 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
 </script>
 <?php endif; ?>
 
+<!-- 3'lü Tanıtım Banner Grid'i (yalnızca ana sayfada) -->
+<?php if (!$urunlerGoster): ?>
+<section class="container py-5">
+    <div class="tanitim-banner-grid">
+        <a href="index.php?kategori=kitchen-accessories#urunler" class="tanitim-banner" style="background-image:url('/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg')">
+            <div class="tanitim-banner-katman"></div>
+            <div class="tanitim-banner-icerik">
+                <span class="tanitim-etiket">%50'ye Varan İndirim</span>
+                <h3>Mutfak Aksesuarları</h3>
+                <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
+            </div>
+        </a>
+
+        <a href="index.php?kategori=mens-shoes#urunler" class="tanitim-banner tanitim-banner-video">
+            <video class="tanitim-banner-video-el" autoplay muted loop playsinline>
+                <source src="/UrunDetay/magaza/assets/video/hero.mp4" type="video/mp4">
+            </video>
+            <div class="tanitim-banner-katman"></div>
+            <div class="tanitim-banner-icerik">
+                <span class="tanitim-etiket">%50'ye Varan İndirim</span>
+                <h3>Erkek Ayakkabı Modelleri</h3>
+                <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
+            </div>
+        </a>
+
+        <a href="index.php?kategori=beauty#urunler" class="tanitim-banner" style="background-image:url('/UrunDetay/magaza/assets/img/GuzellikUrunleri.jpg')">
+            <div class="tanitim-banner-katman"></div>
+            <div class="tanitim-banner-icerik">
+                <span class="tanitim-etiket">Mükemmel Tasarım</span>
+                <h3>Güzellik Ürünleri Koleksiyonu</h3>
+                <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="tanitim-banner-noktalar" id="tanitimBannerNoktalar"></div>
+</section>
+<?php endif; ?>
+
 <main class="container py-4" id="urunler">
     <?php if ($urunlerGoster): ?>
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="section-baslik mb-0">
-            <?php echo $filtreAktif ? htmlspecialchars(ucfirst($seciliKategori)) : 'Tüm Ürünler'; ?>
-            <span style="font-size:0.85rem;font-weight:400;color:var(--renk-metin-acik);margin-left:8px;">
+            <span id="urunlerBaslikMetin"><?php echo $filtreAktif ? htmlspecialchars(ucfirst($seciliKategori)) : 'Tüm Ürünler'; ?></span>
+            <span id="urunlerSayacMetin" style="font-size:0.85rem;font-weight:400;color:var(--renk-metin-acik);margin-left:8px;">
                 (<?php echo $toplamUrun; ?> ürün)
             </span>
         </h2>
@@ -117,7 +213,7 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
             <button class="filtre-mobil-btn d-lg-none" id="filtreMobilBtn" data-bs-toggle="offcanvas" data-bs-target="#filtreSidebar" aria-controls="filtreSidebar">
                 <i class="bi bi-funnel"></i> Filtrele
             </button>
-            <a href="index.php#urunler" class="btn btn-outline-secondary btn-sm" style="border-radius:var(--yuvarlatma-kucuk);">
+            <a href="index.php?tumu=1#urunler" id="filtreTemizleBtn" class="btn btn-outline-secondary btn-sm" style="border-radius:var(--yuvarlatma-kucuk);">
                 <i class="bi bi-x"></i> Filtreyi Temizle
             </a>
         </div>
@@ -139,13 +235,14 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
                 <div class="filtre-baslik"><i class="bi bi-grid"></i> Kategoriler</div>
                 <ul class="filtre-liste">
                     <li>
-                        <a href="index.php?tumu=1#urunler" class="<?php echo !$seciliKategori ? 'aktif' : ''; ?>">
+                        <a href="index.php?tumu=1#urunler" data-tumu="1" class="<?php echo !$seciliKategori ? 'aktif' : ''; ?>">
                             Tümü
                         </a>
                     </li>
                     <?php foreach ($kategoriler as $kat): ?>
                         <li>
                             <a href="index.php?kategori=<?php echo urlencode($kat['kategori']); ?>#urunler"
+                               data-kategori="<?php echo htmlspecialchars($kat['kategori']); ?>"
                                class="<?php echo ($seciliKategori === $kat['kategori']) ? 'aktif' : ''; ?>">
                                 <?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?>
                                 <span class="sayi"><?php echo (int)$kat['urun_sayisi']; ?></span>
@@ -158,7 +255,7 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
             <!-- Fiyat Aralığı -->
             <div class="filtre-kart">
                 <div class="filtre-baslik"><i class="bi bi-currency-exchange"></i> Fiyat Aralığı</div>
-                <form method="get" action="index.php">
+                <form method="get" action="index.php" id="fiyatForm">
                     <?php if ($seciliKategori): ?>
                         <input type="hidden" name="kategori" value="<?php echo htmlspecialchars($seciliKategori); ?>">
                     <?php elseif ($tumuAktif): ?>
@@ -166,18 +263,17 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
                     <?php endif; ?>
                     <input type="hidden" name="siralama" value="<?php echo htmlspecialchars($siralama); ?>">
                     <div class="filtre-fiyat-wrap">
-                        <input type="number" name="fiyat_min" placeholder="Min" min="0" step="1"
+                        <input type="number" name="fiyat_min" id="fiyatMinInput" placeholder="Min" min="0" step="1"
                                value="<?php echo $fiyatMin !== null ? (int)$fiyatMin : ''; ?>">
                         <span>—</span>
-                        <input type="number" name="fiyat_max" placeholder="Max" min="0" step="1"
+                        <input type="number" name="fiyat_max" id="fiyatMaxInput" placeholder="Max" min="0" step="1"
                                value="<?php echo $fiyatMax !== null ? (int)$fiyatMax : ''; ?>">
                     </div>
                     <button type="submit" class="filtre-uygula-btn">Uygula</button>
-                    <?php if ($fiyatMin !== null || $fiyatMax !== null): ?>
-                        <a href="index.php?<?php echo http_build_query(array_filter(['kategori' => $seciliKategori, 'tumu' => $tumuAktif ? 1 : null, 'siralama' => $siralama])); ?>#urunler" class="filtre-temizle-link">
-                            Fiyat filtresini temizle
-                        </a>
-                    <?php endif; ?>
+                    <a href="index.php?<?php echo http_build_query(array_filter(['kategori' => $seciliKategori, 'tumu' => $tumuAktif ? 1 : null, 'siralama' => $siralama])); ?>#urunler"
+                       id="fiyatTemizleLink" class="filtre-temizle-link" style="<?php echo ($fiyatMin === null && $fiyatMax === null) ? 'display:none;' : ''; ?>">
+                        Fiyat filtresini temizle
+                    </a>
                 </form>
             </div>
 
@@ -196,7 +292,7 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
                     <?php if ($fiyatMax !== null): ?>
                         <input type="hidden" name="fiyat_max" value="<?php echo (int)$fiyatMax; ?>">
                     <?php endif; ?>
-                    <select name="siralama" class="filtre-siralama" onchange="document.getElementById('siralamaForm').submit();">
+                    <select name="siralama" class="filtre-siralama">
                         <option value="yeni" <?php echo $siralama === 'yeni' ? 'selected' : ''; ?>>Yeni Eklenen</option>
                         <option value="fiyat_artan" <?php echo $siralama === 'fiyat_artan' ? 'selected' : ''; ?>>Fiyat: Düşük → Yüksek</option>
                         <option value="fiyat_azalan" <?php echo $siralama === 'fiyat_azalan' ? 'selected' : ''; ?>>Fiyat: Yüksek → Düşük</option>
@@ -208,40 +304,22 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
         </aside>
 
         <!-- Sağ: Ürün Grid -->
-        <div class="urun-grid-alani">
-            <?php if ($toplamUrun === 0): ?>
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox" style="font-size:3rem;color:#ccc;"></i>
-                    <p class="text-muted mt-3">Bu filtrelere uygun ürün bulunamadı.</p>
-                </div>
-            <?php else: ?>
-                <div class="row g-4">
-                    <?php foreach ($urunler as $urun): ?>
-                        <div class="col-6 col-md-4">
-                            <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
-                                <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler) ? ' aktif' : ''; ?>" data-id="<?php echo $urun['id']; ?>"
-                                        onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
-                                        title="Favorilere Ekle">
-                                    <i class="bi <?php echo in_array($urun['id'], $favoriIdler) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
-                                </button>
-                                <div class="urun-resim-wrap">
-                                    <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
-                                </div>
-                                <div class="urun-bilgi">
-                                    <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
-                                    <?php if ($urun['yildiz_ortalama'] !== null): ?>
-                                        <span class="urun-yildizlar"><?php echo yildizlar_html($urun['yildiz_ortalama']); ?></span>
-                                    <?php endif; ?>
-                                    <span class="urun-fiyat"><?php echo urun_fiyat_goster($urun); ?></span>
-                                    <?php if ((int)$urun['miktar'] === 0): ?>
-                                        <span class="urun-stok-yok">Stokta Yok</span>
-                                    <?php endif; ?>
-                                </div>
-                            </a>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+        <div class="urun-grid-alani" id="urunGridAlani">
+            <div class="urun-grid-spinner" id="urunGridSpinner"></div>
+            <div id="urunGridIcerik">
+                <?php if ($toplamUrun === 0): ?>
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size:3rem;color:#ccc;"></i>
+                        <p class="text-muted mt-3">Bu filtrelere uygun ürün bulunamadı.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="row g-4">
+                        <?php foreach ($urunler as $urun): ?>
+                            <?php include __DIR__ . '/includes/urun-karti.php'; ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
@@ -260,7 +338,13 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
                      data-baslik="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
                      data-fiyat="<?php echo (float)$urun['fiyat_usd']; ?>"
                      data-resim="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>">
-                    <div class="urun-resim-wrap">
+                    <div class="urun-resim-wrap paket-resim-wrap">
+                        <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler ?? []) ? ' aktif' : ''; ?>"
+                                data-id="<?php echo $urun['id']; ?>"
+                                onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
+                                title="Favorilere Ekle">
+                            <i class="bi <?php echo in_array($urun['id'], $favoriIdler ?? []) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
+                        </button>
                         <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
                     </div>
                     <div class="urun-bilgi">
@@ -276,12 +360,37 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
             <?php endforeach; ?>
         </div>
 
-        <div class="paket-ozet" id="paketOzet">
-            <div class="paket-ozet-baslik">Paket İçeriği</div>
+        <div class="paket-ozet paket-ozet-cerceveli" id="paketOzet">
+            <div class="paket-ozet-ust-satir">
+                <div class="paket-ozet-baslik">Paket İçeriği</div>
+                <button type="button" class="paket-ozet-toggle" id="paketOzetToggle" aria-label="Paket içeriğini aç/kapat">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
             <p class="paket-ozet-aciklama"><strong> 3</strong> ürün ekleyin ve <strong>%30 Kazanın.</strong></p>
 
             <div class="paket-ozet-liste" id="paketOzetListe">
-                <p class="text-muted" id="paketBosMesaj">Henüz ürün eklemediniz.</p>
+                <div class="paket-iskelet-satir">
+                    <div class="paket-iskelet-daire"></div>
+                    <div class="paket-iskelet-cubuklar">
+                        <div class="paket-iskelet-cubuk genis"></div>
+                        <div class="paket-iskelet-cubuk dar"></div>
+                    </div>
+                </div>
+                <div class="paket-iskelet-satir">
+                    <div class="paket-iskelet-daire"></div>
+                    <div class="paket-iskelet-cubuklar">
+                        <div class="paket-iskelet-cubuk genis"></div>
+                        <div class="paket-iskelet-cubuk dar"></div>
+                    </div>
+                </div>
+                <div class="paket-iskelet-satir">
+                    <div class="paket-iskelet-daire"></div>
+                    <div class="paket-iskelet-cubuklar">
+                        <div class="paket-iskelet-cubuk genis"></div>
+                        <div class="paket-iskelet-cubuk dar"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="paket-ozet-alt">
@@ -307,66 +416,127 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
 <?php endif; ?>
 </main>
 
-<?php if (count($musteriYorumlari) > 0): ?>
-<section class="yorum-bolumu">
+<?php
+$urunYorumCarousel = $pdo->query("
+    SELECT uy.*, u.baslik_tr, u.ana_resim, u.fiyat_usd
+    FROM urun_yorumlari uy
+    INNER JOIN urunler u ON u.id = uy.urun_id
+    WHERE uy.puan >= 4
+    ORDER BY RAND()
+    LIMIT 8
+")->fetchAll();
+?>
+<?php if (!$filtreAktif && count($urunYorumCarousel) > 0): ?>
+<section class="yorum-bolum-arka py-5">
     <div class="container">
-        <h2 class="section-baslik text-center">Customer Say!</h2>
-        <p class="text-center text-muted mb-4">Customers love our products and we always strive to please them all.</p>
+        <h2 class="section-baslik text-center">Müşteri Yorumları</h2>
+        <p class="text-center text-muted mb-4">Müşterilerimiz ürünlerimizi seviyor, siz de deneyin.</p>
 
-        <div class="yorum-slider-wrap">
-            <button type="button" class="yorum-ok yorum-ok-sol" id="yorumOkSol">
-                <i class="bi bi-chevron-left"></i>
-            </button>
-
-            <div class="yorum-slider" id="yorumSlider">
-                <?php foreach ($musteriYorumlari as $yorum): ?>
-                    <div class="yorum-kart">
-                        <div class="yorum-yildizlar"><?php echo yildizlar_html($yorum['rating']); ?></div>
-                        <div class="yorum-isim">
-                            <?php echo htmlspecialchars($yorum['reviewerName']); ?>
-                            <span class="yorum-onay"><i class="bi bi-patch-check-fill"></i> Verified Buyer</span>
+        <div class="yorum-carousel-alani">
+            <div class="yorum-carousel" id="yorumCarousel">
+                <?php foreach ($urunYorumCarousel as $yorum): ?>
+                    <div class="urun-yorum-kart">
+                        <div class="urun-yorum-yildizlar">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                <i class="bi <?php echo $i <= (int)$yorum['puan'] ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                            <?php endfor; ?>
                         </div>
-                        <p class="yorum-metin"><?php echo htmlspecialchars($yorum['comment']); ?></p>
-                        <div class="yorum-urun">
-                            <img src="<?php echo htmlspecialchars($yorum['urunResim']); ?>" alt="">
+                        <div class="yorum-yazan"><?php echo htmlspecialchars($yorum['reviewer_adi'] ?? 'Müşteri'); ?></div>
+                        <p class="urun-yorum-metin"><?php echo htmlspecialchars($yorum['yorum']); ?></p>
+                        <div class="urun-yorum-urun">
+                            <img src="<?php echo htmlspecialchars(resim_url($yorum['ana_resim'])); ?>" alt="">
                             <div>
-                                <span class="yorum-urun-ad"><?php echo htmlspecialchars($yorum['urunAdi']); ?></span>
-                                <span class="yorum-urun-fiyat">$<?php echo number_format($yorum['urunFiyat'], 2); ?></span>
+                                <div class="ad"><?php echo htmlspecialchars($yorum['baslik_tr']); ?></div>
+                                <div class="fiyat">$<?php echo number_format($yorum['fiyat_usd'], 2); ?></div>
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
-
-            <button type="button" class="yorum-ok yorum-ok-sag" id="yorumOkSag">
-                <i class="bi bi-chevron-right"></i>
-            </button>
+            <div class="yorum-noktalar" id="yorumNoktalar"></div>
         </div>
     </div>
-    <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const slider = document.getElementById('yorumSlider');
-    const solBtn = document.getElementById('yorumOkSol');
-    const sagBtn = document.getElementById('yorumOkSag');
-    if (!slider || !solBtn || !sagBtn) return;
-
-    function kartGenisligi() {
-        const kart = slider.querySelector('.yorum-kart');
-        if (!kart) return 300;
-        const stil = window.getComputedStyle(kart);
-        return kart.offsetWidth + parseInt(stil.marginRight || 0) + 24;
-    }
-
-    solBtn.addEventListener('click', function () {
-        slider.scrollBy({ left: -kartGenisligi(), behavior: 'smooth' });
-    });
-
-    sagBtn.addEventListener('click', function () {
-        slider.scrollBy({ left: kartGenisligi(), behavior: 'smooth' });
-    });
-});
-</script>
 </section>
 <?php endif; ?>
+
+<!-- Promosyon Banner'ları -->
+<section class="promo-banners">
+    <div class="container">
+        <div class="promo-banners-grid">
+            <div class="promo-banner promo-banner-koyu">
+                <div class="promo-banner-metin">
+                    <span class="promo-banner-etiket">İNDİRİM %30-50</span>
+                    <h3 class="promo-banner-baslik">Mutfak Setleri</h3>
+                    <p class="promo-banner-aciklama">149 TL'den başlayan fiyatlarla, kaçırmayın...</p>
+                    <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
+                </div>
+                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel">
+            </div>
+            <div class="promo-banner promo-banner-bordo">
+                <div class="promo-banner-metin">
+                    <span class="promo-banner-etiket">%75'E VARAN İNDİRİM</span>
+                    <h3 class="promo-banner-baslik">Sınırlı Süreli Fırsatlar</h3>
+                    <p class="promo-banner-aciklama">99 TL'den başlayan fiyatlarla, kaçırmayın...</p>
+                    <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
+                </div>
+                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel">
+            </div>
+        </div>
+
+        <div class="indirim-kart-noktalar" id="indirimKartNoktalar"></div>
+    </div>
+</section>
+
+<!-- Neden Bizi Seçmelisiniz -->
+<section class="why-choose-us">
+    <div class="container">
+        <p class="why-choose-us-eyebrow">NEDEN BİZİ SEÇMELİSİNİZ</p>
+        <h2 class="why-choose-us-baslik">Alışverişin En Kolay Hali</h2>
+        <p class="why-choose-us-aciklama">
+            Kaliteli ürünler, hızlı teslimat ve güvenilir hizmeti bir arada sunuyoruz.
+        </p>
+
+        <div class="why-choose-us-grid">
+            <div class="why-choose-us-oge">
+                <div class="feature-icon"><i class="fa-solid fa-box"></i></div>
+                <h3>Orijinal Ürün Garantisi</h3>
+                <p>Tüm ürünlerimiz %100 orijinal ve kalite garantilidir.</p>
+            </div>
+            <div class="why-choose-us-oge">
+                <div class="feature-icon"><i class="fa-solid fa-truck-fast"></i></div>
+                <h3>Hızlı ve Ücretsiz Kargo</h3>
+                <p>Siparişleriniz özenle paketlenir, hızlıca kapınıza gelir.</p>
+            </div>
+            <div class="why-choose-us-oge">
+                <div class="feature-icon"><i class="fa-solid fa-rotate-left"></i></div>
+                <h3>14 Gün Kolay İade</h3>
+                <p>Beğenmediğiniz ürünü sorgusuz sualsiz iade edebilirsiniz.</p>
+            </div>
+            <div class="why-choose-us-oge">
+                <div class="feature-icon"><i class="fa-solid fa-headset"></i></div>
+                <h3>7/24 Müşteri Desteği</h3>
+                <p>Her sorunuzda size yardımcı olmak için buradayız.</p>
+            </div>
+        </div>
+
+        <div class="ozellik-kart-noktalar" id="ozellikKartNoktalar"></div>
+    </div>
+</section>
+
+<!-- İletişim Çağrı Bölümü (Video Arka Planlı) -->
+<section class="video-cta-section">
+    <video autoplay muted loop playsinline class="hero-bg-video">
+        <source src="/UrunDetay/magaza/assets/video/hero.mp4" type="video/mp4">
+    </video>
+    <div class="video-cta-overlay"></div>
+    <div class="video-cta-icerik">
+        <div class="video-cta-ikon">
+            <i class="fa-solid fa-headset"></i>
+        </div>
+        <p class="video-cta-etiket">BİZE ULAŞIN</p>
+        <h2 class="video-cta-baslik">Sorularınız mı Var?<br>Size Yardımcı Olalım.</h2>
+        <button type="button" class="video-cta-btn">İletişime Geç</button>
+    </div>
+</section>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

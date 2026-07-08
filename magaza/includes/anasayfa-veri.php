@@ -50,45 +50,7 @@ $fiyatMin = isset($_GET['fiyat_min']) ? (float)$_GET['fiyat_min'] : null;
 $fiyatMax = isset($_GET['fiyat_max']) ? (float)$_GET['fiyat_max'] : null;
 $siralama = $_GET['siralama'] ?? 'yeni';
 
-$sql = "SELECT * FROM urunler WHERE durum = 1";
-$params = [];
-
-if ($seciliKategori) {
-    $sql .= " AND kategori = :kategori";
-    $params[':kategori'] = $seciliKategori;
-}
-
-if ($fiyatMin !== null && $fiyatMin > 0) {
-    $sql .= " AND (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) >= :fiyat_min";
-    $params[':fiyat_min'] = $fiyatMin;
-}
-
-if ($fiyatMax !== null && $fiyatMax > 0) {
-    $sql .= " AND (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) <= :fiyat_max";
-    $params[':fiyat_max'] = $fiyatMax;
-}
-
-switch ($siralama) {
-    case 'fiyat_artan':
-        $sql .= " ORDER BY (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) ASC";
-        break;
-    case 'fiyat_azalan':
-        $sql .= " ORDER BY (CASE WHEN fiyat_tl > 0 THEN fiyat_tl ELSE fiyat_usd END) DESC";
-        break;
-    case 'ad_az':
-        $sql .= " ORDER BY baslik_tr ASC";
-        break;
-    default:
-        $sql .= " ORDER BY id DESC";
-}
-
-if (!$urunlerGoster) {
-    $sql .= " LIMIT 24";
-}
-
-$stmtUrunler = $pdo->prepare($sql);
-$stmtUrunler->execute($params);
-$urunler = $stmtUrunler->fetchAll();
+$urunler = urunleri_filtrele($pdo, $seciliKategori, $fiyatMin, $fiyatMax, $siralama, $urunlerGoster ? null : 24);
 $urunler = urunlere_puan_ekle($pdo, $urunler);
 
 // Giriş yapan kullanıcının favori ürün ID'leri

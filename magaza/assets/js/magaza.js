@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
             sepetVerisi = data.sepet;
             sepetBadgeGuncelle();
             sepetSidebarGuncelle();
+            paketOzetiCiz();
             return data;
         }).catch(() => {
             bildirimGoster('Bir hata oluştu, tekrar deneyin.');
@@ -54,13 +55,24 @@ document.addEventListener('DOMContentLoaded', function () {
         sepetIstek('islem=adet_guncelle&urun_id=' + encodeURIComponent(id) + '&delta=' + encodeURIComponent(delta));
     }
 
+    function sepetPaketSil(paketId) {
+        sepetIstek('islem=paket_sil&paket_id=' + encodeURIComponent(paketId));
+    }
+
     function sepetBadgeGuncelle() {
         const sepet = sepetGetir();
-        const toplamAdet = sepet.reduce((t, u) => t + parseInt(u.adet, 10), 0);
+        const toplamAdet = sepet.reduce((t, u) => t + parseInt(u.parcaSayisi ?? u.adet, 10), 0);
+
         const badge = document.getElementById('sepetBadge');
         if (badge) {
             badge.textContent = toplamAdet;
             badge.classList.toggle('aktif', toplamAdet > 0);
+        }
+
+        const mobilBadge = document.getElementById('mobilSepetBadge');
+        if (mobilBadge) {
+            mobilBadge.textContent = toplamAdet;
+            mobilBadge.classList.toggle('aktif', toplamAdet > 0);
         }
     }
 
@@ -88,6 +100,23 @@ function sepetSidebarGuncelle() {
     sepet.forEach(u => {
         const araToplam = parseFloat(u.fiyat) * parseInt(u.adet, 10);
         toplam += araToplam;
+
+        if (u.type === 'bundle') {
+            html += `
+                <div class="sepet-urun sepet-urun-paket">
+                    <img src="${u.resim}" alt="${u.baslik}">
+                    <div class="sepet-urun-bilgi">
+                        <div class="sepet-paket-rozet"><i class="bi bi-box-seam"></i> Paket</div>
+                        <div class="ad">${u.baslik}</div>
+                        <div class="fiyat">$${araToplam.toFixed(2)}</div>
+                    </div>
+                    <button class="sepet-urun-sil" onclick="window.sepetPaketSil('${u.paket_id}')">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </div>
+            `;
+            return;
+        }
 
         html += `
             <div class="sepet-urun">
@@ -118,6 +147,7 @@ function sepetSidebarGuncelle() {
     // Global erişim (onclick'ler için)
     window.sepetAdetGuncelle = function(id, delta) { sepetAdetGuncelle(id, delta); };
     window.sepettenSil = function(id) { sepettenSil(id); };
+    window.sepetPaketSil = function(paketId) { sepetPaketSil(paketId); };
 
     // ==========================================
     // FAVORİ YÖNETİMİ (veritabanı - AJAX)
@@ -125,10 +155,20 @@ function sepetSidebarGuncelle() {
 
     function favoriBadgeDegistir(delta) {
         const badge = document.getElementById('favoriBadge');
-        if (!badge) return;
-        const yeniSayi = Math.max(0, parseInt(badge.textContent || '0') + delta);
-        badge.textContent = yeniSayi;
-        badge.classList.toggle('aktif', yeniSayi > 0);
+        const mobilBadge = document.getElementById('mobilFavoriBadge');
+        if (!badge && !mobilBadge) return;
+
+        const mevcutSayi = parseInt((badge || mobilBadge).textContent || '0', 10);
+        const yeniSayi = Math.max(0, mevcutSayi + delta);
+
+        if (badge) {
+            badge.textContent = yeniSayi;
+            badge.classList.toggle('aktif', yeniSayi > 0);
+        }
+        if (mobilBadge) {
+            mobilBadge.textContent = yeniSayi;
+            mobilBadge.classList.toggle('aktif', yeniSayi > 0);
+        }
     }
 
     // Global toggleFavori
@@ -164,6 +204,19 @@ function sepetSidebarGuncelle() {
             });
     };
 
+    window.hizliSepeteEkle = function (id, btn) {
+        sepeteEkle(id, 1);
+        if (btn) {
+            const orijinalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check2"></i>';
+            btn.classList.add('eklendi');
+            setTimeout(() => {
+                btn.innerHTML = orijinalIcon;
+                btn.classList.remove('eklendi');
+            }, 1200);
+        }
+    };
+
     // ==========================================
     // SEPET SİDEBAR (Bootstrap Offcanvas)
     // ==========================================
@@ -173,6 +226,8 @@ function sepetSidebarGuncelle() {
     function sepetAc() {
         if (sepetSidebarEl) bootstrap.Offcanvas.getOrCreateInstance(sepetSidebarEl).show();
     }
+
+    document.getElementById('mobilSepetAcBtn')?.addEventListener('click', sepetAc);
 
     // ==========================================
     // ARAMA MODAL (Bootstrap Modal)
@@ -269,6 +324,141 @@ function sepetSidebarGuncelle() {
     });
 
     // ==========================================
+    // FİLTRE SIDEBAR — AJAX (kategori/fiyat/sıralama/temizle)
+    // ==========================================
+
+    const filtreSidebarEl = document.getElementById('filtreSidebar');
+    const urunGridAlaniEl = document.getElementById('urunGridAlani');
+    const urunGridIcerikEl = document.getElementById('urunGridIcerik');
+    const urunlerBaslikMetinEl = document.getElementById('urunlerBaslikMetin');
+    const urunlerSayacMetinEl = document.getElementById('urunlerSayacMetin');
+    const fiyatMinInput = document.getElementById('fiyatMinInput');
+    const fiyatMaxInput = document.getElementById('fiyatMaxInput');
+    const fiyatTemizleLink = document.getElementById('fiyatTemizleLink');
+    const siralamaSelect = document.querySelector('#siralamaForm .filtre-siralama');
+
+    if (filtreSidebarEl && urunGridIcerikEl) {
+
+        function filtreninMevcutDurumu() {
+            const aktifLink = filtreSidebarEl.querySelector('.filtre-liste a.aktif');
+            return {
+                kategori: aktifLink?.dataset.kategori || null,
+                tumu: !!(aktifLink && aktifLink.hasAttribute('data-tumu')),
+                fiyat_min: fiyatMinInput?.value || '',
+                fiyat_max: fiyatMaxInput?.value || '',
+                siralama: siralamaSelect?.value || 'yeni',
+            };
+        }
+
+        function sorguOlustur(durum) {
+            const q = new URLSearchParams();
+            if (durum.kategori) q.set('kategori', durum.kategori);
+            else if (durum.tumu) q.set('tumu', '1');
+            if (durum.fiyat_min) q.set('fiyat_min', durum.fiyat_min);
+            if (durum.fiyat_max) q.set('fiyat_max', durum.fiyat_max);
+            if (durum.siralama && durum.siralama !== 'yeni') q.set('siralama', durum.siralama);
+            return q;
+        }
+
+        function filtreUygula(durum, urlGuncelle = true) {
+            const q = sorguOlustur(durum);
+
+            urunGridAlaniEl?.classList.add('yukleniyor');
+
+            fetch('/UrunDetay/magaza/urunler-filtrele.php?' + q.toString())
+                .then(r => r.json())
+                .then(data => {
+                    if (!data || !data.basarili) return;
+
+                    urunGridIcerikEl.innerHTML = data.html;
+
+                    if (urunlerBaslikMetinEl) urunlerBaslikMetinEl.textContent = data.baslik;
+                    if (urunlerSayacMetinEl) urunlerSayacMetinEl.textContent = '(' + data.toplamUrun + ' ürün)';
+
+                    filtreSidebarEl.querySelectorAll('.filtre-liste a').forEach(a => {
+                        const buLinkTumu = a.hasAttribute('data-tumu');
+                        const aktifMi = data.seciliKategori
+                            ? a.dataset.kategori === data.seciliKategori
+                            : (data.tumuAktif ? buLinkTumu : false);
+                        a.classList.toggle('aktif', aktifMi);
+                    });
+
+                    if (fiyatMinInput) fiyatMinInput.value = data.fiyatMin ?? '';
+                    if (fiyatMaxInput) fiyatMaxInput.value = data.fiyatMax ?? '';
+                    if (fiyatTemizleLink) {
+                        fiyatTemizleLink.style.display = (data.fiyatMin || data.fiyatMax) ? '' : 'none';
+                    }
+                    if (siralamaSelect) siralamaSelect.value = data.siralama;
+
+                    if (urlGuncelle) {
+                        const urlQuery = sorguOlustur({
+                            kategori: data.seciliKategori,
+                            tumu: data.tumuAktif,
+                            fiyat_min: data.fiyatMin,
+                            fiyat_max: data.fiyatMax,
+                            siralama: data.siralama,
+                        });
+                        const yeniUrl = 'index.php' + (urlQuery.toString() ? '?' + urlQuery.toString() : '') + '#urunler';
+                        history.pushState(null, '', yeniUrl);
+                    }
+
+                    return gorselleriOnYukle(urunGridIcerikEl);
+                })
+                .catch(() => {
+                    bildirimGoster('Ürünler yüklenemedi, tekrar deneyin.');
+                })
+                .finally(() => {
+                    urunGridAlaniEl?.classList.remove('yukleniyor');
+                });
+        }
+
+        filtreSidebarEl.querySelectorAll('.filtre-liste a').forEach(a => {
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                const durum = filtreninMevcutDurumu();
+                filtreUygula({
+                    kategori: this.dataset.kategori || null,
+                    tumu: this.hasAttribute('data-tumu'),
+                    fiyat_min: durum.fiyat_min,
+                    fiyat_max: durum.fiyat_max,
+                    siralama: durum.siralama,
+                });
+            });
+        });
+
+        document.getElementById('fiyatForm')?.addEventListener('submit', function (e) {
+            e.preventDefault();
+            filtreUygula(filtreninMevcutDurumu());
+        });
+
+        fiyatTemizleLink?.addEventListener('click', function (e) {
+            e.preventDefault();
+            filtreUygula({ ...filtreninMevcutDurumu(), fiyat_min: '', fiyat_max: '' });
+        });
+
+        siralamaSelect?.addEventListener('change', function () {
+            filtreUygula({ ...filtreninMevcutDurumu(), siralama: this.value });
+        });
+
+        document.getElementById('filtreTemizleBtn')?.addEventListener('click', function (e) {
+            e.preventDefault();
+            filtreUygula({ kategori: null, tumu: true, fiyat_min: '', fiyat_max: '', siralama: 'yeni' });
+        });
+
+        window.addEventListener('popstate', function () {
+            if (!location.pathname.endsWith('/index.php')) return;
+            const q = new URLSearchParams(location.search);
+            filtreUygula({
+                kategori: q.get('kategori'),
+                tumu: q.has('tumu'),
+                fiyat_min: q.get('fiyat_min') || '',
+                fiyat_max: q.get('fiyat_max') || '',
+                siralama: q.get('siralama') || 'yeni',
+            }, false);
+        });
+    }
+
+    // ==========================================
     // SEPETE EKLE BUTONU (Ürün Detay Sayfası)
     // ==========================================
 
@@ -328,6 +518,29 @@ function sepetSidebarGuncelle() {
         });
     }
 
+    // Bir konteynerdeki ürün görsellerini (arka plan resmi olarak ayarlanmış
+    // .urun-resim elemanları) önceden yükler; hepsi yüklenince (veya hata
+    // verince) çözülen bir Promise döner. Yükleniyor/şeffaflık durumunun
+    // sadece veri gelene kadar değil, görseller gerçekten hazır olana kadar
+    // sürmesi için kullanılır.
+    function gorselleriOnYukle(konteyner) {
+        if (!konteyner) return Promise.resolve();
+
+        const yuklemeler = Array.from(konteyner.querySelectorAll('.urun-resim')).map(el => {
+            const eslesme = el.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+            if (!eslesme) return Promise.resolve();
+
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = resolve;
+                img.src = eslesme[1];
+            });
+        });
+
+        return Promise.all(yuklemeler);
+    }
+
     // ==========================================
     // ÖNE ÇIKAN KATEGORİLER — AJAX (POST) + ÖNBELLEK
     // ==========================================
@@ -353,8 +566,18 @@ function sepetSidebarGuncelle() {
         const stokYokHtml = urun.miktar === 0 ? '<span class="urun-stok-yok">Stokta Yok</span>' : '';
         const yildizHtml = yildizHtmlOlustur(urun.yildiz_ortalama);
         return `
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-3 kategori-urun-slayt">
                 <a href="urun.php?id=${urun.id}" class="urun-kart">
+                    <button class="favori-btn" data-id="${urun.id}"
+                            onclick="event.preventDefault();event.stopPropagation();toggleFavori(${urun.id}, this);"
+                            title="Favorilere Ekle">
+                        <i class="bi bi-heart"></i>
+                    </button>
+                    <button class="hizli-sepet-btn" data-id="${urun.id}"
+                            onclick="event.preventDefault();event.stopPropagation();window.hizliSepeteEkle(${urun.id}, this);"
+                            title="Sepete Ekle">
+                        <i class="bi bi-bag-plus"></i>
+                    </button>
                     <div class="urun-resim-wrap">
                         <div class="urun-resim" style="background-image:url('${urun.ana_resim}')"></div>
                     </div>
@@ -382,6 +605,8 @@ function sepetSidebarGuncelle() {
             gorBtn.href = '/UrunDetay/magaza/index.php?kategori=' + encodeURIComponent(kategori) + '#urunler';
             gorBtn.textContent = 'Tüm ' + kategori.charAt(0).toUpperCase() + kategori.slice(1) + ' Ürünlerini Gör';
         }
+
+        kategoriUrunNoktalariGuncelle();
     }
 
     document.querySelectorAll('.kategori-tab').forEach(tab => {
@@ -411,6 +636,7 @@ function sepetSidebarGuncelle() {
                     if (!data || !data.basarili) return;
                     kategoriUrunCache[kategori] = data.urunler;
                     kategoriPaneliDoldur(kategori, data.urunler);
+                    return gorselleriOnYukle(document.getElementById('kategoriUrunGrid'));
                 })
                 .catch(() => {
                     bildirimGoster('Ürünler yüklenemedi, tekrar deneyin.');
@@ -418,6 +644,224 @@ function sepetSidebarGuncelle() {
                 .finally(() => {
                     if (alan) alan.classList.remove('yukleniyor');
                 });
+        });
+    });
+
+    // ==========================================
+    // KATEGORİ VİTRİNLERİ — MOBİL DOT (NOKTA) SAYFALAMA
+    // ==========================================
+
+    const kategoriVitrinGrid = document.querySelector('.kategori-vitrin-grid');
+    const kategoriVitrinNoktalar = document.getElementById('kategoriVitrinNoktalar');
+
+    if (kategoriVitrinGrid && kategoriVitrinNoktalar) {
+        const kartlar = kategoriVitrinGrid.children;
+
+        for (let i = 0; i < kartlar.length; i++) {
+            const nokta = document.createElement('span');
+            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            kategoriVitrinNoktalar.appendChild(nokta);
+        }
+
+        const noktaElemanlari = kategoriVitrinNoktalar.querySelectorAll('.nokta');
+
+        kategoriVitrinGrid.addEventListener('scroll', function () {
+            const kartGenisligi = kartlar[0].offsetWidth + 14; // gap dahil
+            const aktifIndex = Math.round(kategoriVitrinGrid.scrollLeft / kartGenisligi);
+
+            noktaElemanlari.forEach((n, i) => {
+                n.classList.toggle('aktif', i === aktifIndex);
+            });
+        });
+    }
+
+    // ==========================================
+    // ÖNE ÇIKAN KATEGORİLER — NOKTA (DOT) SAYFALAMA
+    // ==========================================
+
+    function kategoriUrunNoktalariGuncelle() {
+        const grid = document.getElementById('kategoriUrunGrid');
+        const noktaAlani = document.getElementById('kategoriUrunNoktalar');
+        if (!grid || !noktaAlani || window.innerWidth > 767) {
+            if (noktaAlani) noktaAlani.innerHTML = '';
+            return;
+        }
+
+        const kartlar = grid.children;
+        noktaAlani.innerHTML = '';
+
+        for (let i = 0; i < kartlar.length; i++) {
+            const nokta = document.createElement('span');
+            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            noktaAlani.appendChild(nokta);
+        }
+
+        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
+
+        grid.onscroll = function () {
+            if (kartlar.length === 0) return;
+            const kartGenisligi = kartlar[0].offsetWidth + 16;
+            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+        };
+    }
+
+    kategoriUrunNoktalariGuncelle();
+
+    // ==========================================
+    // 3'LÜ TANITIM BANNER — MOBİL NOKTA (DOT) SAYFALAMA
+    // ==========================================
+
+    function tanitimBannerNoktalariGuncelle() {
+        const grid = document.querySelector('.tanitim-banner-grid');
+        const noktaAlani = document.getElementById('tanitimBannerNoktalar');
+        if (!grid || !noktaAlani) return;
+
+        if (window.innerWidth > 767) {
+            noktaAlani.innerHTML = '';
+            return;
+        }
+
+        const bannerlar = grid.children;
+        noktaAlani.innerHTML = '';
+
+        for (let i = 0; i < bannerlar.length; i++) {
+            const nokta = document.createElement('span');
+            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            noktaAlani.appendChild(nokta);
+        }
+
+        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
+
+        grid.onscroll = function () {
+            if (bannerlar.length === 0) return;
+            const bannerGenisligi = bannerlar[0].offsetWidth;
+            const aktifIndex = Math.round(grid.scrollLeft / bannerGenisligi);
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+        };
+    }
+
+    tanitimBannerNoktalariGuncelle();
+    window.addEventListener('resize', tanitimBannerNoktalariGuncelle);
+
+    // ==========================================
+    // MÜŞTERİ YORUMLARI — NOKTA (DOT) SAYFALAMA
+    // ==========================================
+
+    function yorumNoktalariGuncelle() {
+        const grid = document.getElementById('yorumCarousel');
+        const noktaAlani = document.getElementById('yorumNoktalar');
+        if (!grid || !noktaAlani) return;
+
+        if (window.innerWidth > 767) {
+            noktaAlani.innerHTML = '';
+            return;
+        }
+
+        const kartlar = grid.children;
+        noktaAlani.innerHTML = '';
+
+        for (let i = 0; i < kartlar.length; i++) {
+            const nokta = document.createElement('span');
+            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            noktaAlani.appendChild(nokta);
+        }
+
+        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
+
+        grid.onscroll = function () {
+            if (kartlar.length === 0) return;
+            const kartGenisligi = kartlar[0].offsetWidth + 20;
+            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+        };
+    }
+
+    yorumNoktalariGuncelle();
+    window.addEventListener('resize', yorumNoktalariGuncelle);
+
+    // ==========================================
+    // İNDİRİM KARTLARI — MOBİL NOKTA (DOT) SAYFALAMA
+    // ==========================================
+
+    function indirimKartNoktalariGuncelle() {
+        const grid = document.querySelector('.promo-banners-grid');
+        const noktaAlani = document.getElementById('indirimKartNoktalar');
+        if (!grid || !noktaAlani) return;
+
+        if (window.innerWidth > 767) {
+            noktaAlani.innerHTML = '';
+            return;
+        }
+
+        const kartlar = grid.children;
+        noktaAlani.innerHTML = '';
+
+        for (let i = 0; i < kartlar.length; i++) {
+            const nokta = document.createElement('span');
+            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            noktaAlani.appendChild(nokta);
+        }
+
+        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
+
+        grid.onscroll = function () {
+            if (kartlar.length === 0) return;
+            const kartGenisligi = kartlar[0].offsetWidth + 16;
+            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+        };
+    }
+
+    indirimKartNoktalariGuncelle();
+    window.addEventListener('resize', indirimKartNoktalariGuncelle);
+
+    // ==========================================
+    // ÖZELLİK KARTLARI (NEDEN BİZİ SEÇMELİSİNİZ) — MOBİL NOKTA (DOT) SAYFALAMA
+    // ==========================================
+
+    function ozellikKartNoktalariGuncelle() {
+        const grid = document.querySelector('.why-choose-us-grid');
+        const noktaAlani = document.getElementById('ozellikKartNoktalar');
+        if (!grid || !noktaAlani) return;
+
+        if (window.innerWidth > 767) {
+            noktaAlani.innerHTML = '';
+            return;
+        }
+
+        const kartlar = grid.children;
+        noktaAlani.innerHTML = '';
+
+        for (let i = 0; i < kartlar.length; i++) {
+            const nokta = document.createElement('span');
+            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            noktaAlani.appendChild(nokta);
+        }
+
+        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
+
+        grid.onscroll = function () {
+            if (kartlar.length === 0) return;
+            const kartGenisligi = kartlar[0].offsetWidth + 16;
+            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+        };
+    }
+
+    ozellikKartNoktalariGuncelle();
+    window.addEventListener('resize', ozellikKartNoktalariGuncelle);
+
+    // ==========================================
+    // FOOTER ACCORDION (sadece mobilde anlamlı, masaüstünde CSS zaten
+    // hepsini açık gösteriyor, bu JS orada zararsız çalışır)
+    // ==========================================
+
+    document.querySelectorAll('.footer-accordion-baslik').forEach(baslik => {
+        baslik.addEventListener('click', function () {
+            const item = this.closest('.footer-accordion-item');
+            if (!item) return;
+            item.classList.toggle('acik');
         });
     });
 
@@ -434,6 +878,13 @@ function sepetSidebarGuncelle() {
     const PAKET_MIN_URUN = 3;
     const PAKET_MAX_URUN = 3;
 
+    // Sepette zaten "bundle" tipi bir satır varsa yeni paket oluşturulamaz —
+    // güvenlik açısından asıl kısıt sepet-islem.php'de (sunucu tarafında);
+    // bu sadece arayüzü buna göre pasifleştirmek için kullanılır.
+    function aktifPaketVarMi() {
+        return sepetGetir().some(u => u.type === 'bundle');
+    }
+
     function paketOzetiCiz() {
         const liste = document.getElementById('paketOzetListe');
         const araToplamEl = document.getElementById('paketAraToplam');
@@ -444,8 +895,18 @@ function sepetSidebarGuncelle() {
 
         if (!liste) return;
 
+        const paketIskeletSatiri = `
+            <div class="paket-iskelet-satir">
+                <div class="paket-iskelet-daire"></div>
+                <div class="paket-iskelet-cubuklar">
+                    <div class="paket-iskelet-cubuk genis"></div>
+                    <div class="paket-iskelet-cubuk dar"></div>
+                </div>
+            </div>
+        `;
+
         if (paketSepeti.length === 0) {
-            liste.innerHTML = '<p class="text-muted" id="paketBosMesaj">Henüz ürün eklemediniz.</p>';
+            liste.innerHTML = paketIskeletSatiri.repeat(3);
         } else {
             liste.innerHTML = paketSepeti.map(u => `
                 <div class="paket-ozet-urun">
@@ -464,14 +925,20 @@ function sepetSidebarGuncelle() {
         araToplamEl.textContent = '$' + araToplam.toFixed(2);
         toplamEl.textContent = '$' + toplam.toFixed(2);
 
+        const toplamSatiri = toplamEl.closest('.paket-ozet-satir');
+
         if (indirimUygulaniyor) {
             indirimSatiri.style.display = 'flex';
             indirimTutariEl.textContent = '-$' + indirimTutari.toFixed(2);
+            if (toplamSatiri) toplamSatiri.style.display = 'flex';
         } else {
             indirimSatiri.style.display = 'none';
+            if (toplamSatiri) toplamSatiri.style.display = 'none';
         }
 
-        sepeteEkleBtn.disabled = paketSepeti.length === 0;
+        const aktifPaketVar = aktifPaketVarMi();
+
+        sepeteEkleBtn.disabled = paketSepeti.length === 0 || aktifPaketVar;
 
         // Kaldır butonlarını bağla
         liste.querySelectorAll('.cikar').forEach(btn => {
@@ -480,14 +947,33 @@ function sepetSidebarGuncelle() {
             });
         });
 
-        // Limit dolunca, seçili olmayan kartların butonlarını pasifleştir
+        // Limit dolunca VEYA sepette zaten aktif bir paket varken,
+        // seçili olmayan kartların butonlarını pasifleştir
         const limitDoldu = paketSepeti.length >= PAKET_MAX_URUN;
         document.querySelectorAll('.paket-urun-kart').forEach(kart => {
             const btn = kart.querySelector('.paket-ekle-btn');
             const seciliMi = btn.classList.contains('secili');
-            btn.disabled = limitDoldu && !seciliMi;
-            btn.style.opacity = (limitDoldu && !seciliMi) ? '0.4' : '1';
-            btn.style.cursor = (limitDoldu && !seciliMi) ? 'not-allowed' : 'pointer';
+            const pasifOlmali = aktifPaketVar || (limitDoldu && !seciliMi);
+            btn.disabled = pasifOlmali;
+            btn.style.opacity = pasifOlmali ? '0.4' : '1';
+            btn.style.cursor = pasifOlmali ? 'not-allowed' : 'pointer';
+        });
+    }
+
+    // ==========================================
+    // PAKET İÇERİĞİ — MOBİL AÇMA/KAPAMA (ACCORDION)
+    // ==========================================
+
+    const paketOzetToggle = document.getElementById('paketOzetToggle');
+    const paketOzetPaneli = document.getElementById('paketOzet');
+
+    if (paketOzetToggle && paketOzetPaneli) {
+        paketOzetToggle.addEventListener('click', function () {
+            const acikMi = paketOzetPaneli.classList.toggle('acik');
+            paketOzetToggle.classList.toggle('acik', acikMi);
+            paketOzetToggle.innerHTML = acikMi
+                ? '<i class="bi bi-dash-lg"></i>'
+                : '<i class="bi bi-plus-lg"></i>';
         });
     }
 
@@ -530,13 +1016,17 @@ function sepetSidebarGuncelle() {
     const paketSepeteEkleBtn = document.getElementById('paketSepeteEkleBtn');
     if (paketSepeteEkleBtn) {
         paketSepeteEkleBtn.addEventListener('click', function () {
-            if (paketSepeti.length === 0) return;
+            if (aktifPaketVarMi()) {
+                bildirimGoster('Zaten aktif bir paketiniz var. Yeni paket oluşturmak için önce mevcut paketi sepetten kaldırın.');
+                return;
+            }
 
-            const istekler = paketSepeti.map(u =>
-                sepetIstek('islem=ekle&urun_id=' + encodeURIComponent(u.id) + '&adet=1')
-            );
+            if (paketSepeti.length !== PAKET_MIN_URUN) return;
 
-            Promise.all(istekler).then(() => {
+            const govde = 'islem=paket_ekle&' + paketSepeti.map(u => 'urun_idler[]=' + encodeURIComponent(u.id)).join('&');
+
+            sepetIstek(govde).then(function (data) {
+                if (!data) return;
                 document.querySelectorAll('.paket-ekle-btn.secili').forEach(btn => {
                     btn.classList.remove('secili');
                     btn.textContent = 'Pakete Ekle';
