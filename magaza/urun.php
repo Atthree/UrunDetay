@@ -60,6 +60,51 @@ if (!empty($urun['kategori'])) {
     $benzerUrunler = $stmtBenzer->fetchAll();
 }
 ?>
+<?php
+// Ürün Yorumları — veritabanından çek
+$yorumStmt = $pdo->prepare("
+    SELECT uy.*, COALESCE(k.ad_soyad, uy.reviewer_adi) AS yazan_ad
+    FROM urun_yorumlari uy
+    LEFT JOIN kullanicilar k ON k.id = uy.kullanici_id
+    WHERE uy.urun_id = :id
+    ORDER BY uy.olusturma_tarihi DESC
+");
+$yorumStmt->execute([':id' => $urun['id']]);
+$urunYorumlari = $yorumStmt->fetchAll();
+
+$ozetStmt = $pdo->prepare("
+    SELECT puan, COUNT(*) AS adet
+    FROM urun_yorumlari
+    WHERE urun_id = :id
+    GROUP BY puan
+");
+$ozetStmt->execute([':id' => $urun['id']]);
+$ozetSonuc = $ozetStmt->fetchAll();
+
+$dagilim = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+$yorumSayisi = 0;
+$toplamPuan = 0;
+
+foreach ($ozetSonuc as $satir) {
+    $p = (int)$satir['puan'];
+    $adet = (int)$satir['adet'];
+    if (isset($dagilim[$p])) {
+        $dagilim[$p] = $adet;
+        $yorumSayisi += $adet;
+        $toplamPuan += $p * $adet;
+    }
+}
+
+$ortalamaPuan = $yorumSayisi > 0 ? round($toplamPuan / $yorumSayisi, 1) : 0;
+
+$dahaOnceYorumYapmis = false;
+if (girisYapmisMi()) {
+    $kontrolStmt = $pdo->prepare("SELECT id FROM urun_yorumlari WHERE urun_id = :uid AND kullanici_id = :kid");
+    $kontrolStmt->execute([':uid' => $urun['id'], ':kid' => $_SESSION['kullanici_id']]);
+    $dahaOnceYorumYapmis = (bool)$kontrolStmt->fetch();
+}
+?>
+
 
 <div class="container">
     <!-- Breadcrumb -->
@@ -111,6 +156,18 @@ if (!empty($urun['kategori'])) {
 
             <!-- Başlık -->
             <h1 class="urun-detay-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></h1>
+            <?php if ($yorumSayisi > 0): ?>
+            <div class="urun-detay-puan">
+                <span class="urun-detay-yildizlar">
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="bi <?php echo $i <= round($ortalamaPuan) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                    <?php endfor; ?>
+                </span>
+                <a href="#yorumlar" class="urun-detay-puan-sayi">
+                    <?php echo $yorumSayisi; ?> review<?php echo $yorumSayisi > 1 ? 's' : ''; ?>
+                </a>
+            </div>
+            <?php endif; ?>
 
             <!-- Ürün Kodu -->
             <p style="font-size:0.82rem;color:var(--renk-metin-acik);">
@@ -212,6 +269,105 @@ if (!empty($urun['kategori'])) {
         </div>
     </div>
 
+    <!-- Müşteri Yorumları -->
+    <section class="yorum-ozet-bolumu" id="yorumlar">
+        <h2 class="section-baslik text-center">Customer Reviews</h2>
+
+        <?php if ($yorumSayisi > 0): ?>
+        <div class="yorum-ozet-grid">
+            <div class="yorum-ozet-sol">
+                <div class="yorum-yildiz-buyuk">
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="bi <?php echo $i <= round($ortalamaPuan) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                    <?php endfor; ?>
+                    <span class="yorum-puan-sayi"><?php echo $ortalamaPuan; ?> out of 5</span>
+                </div>
+                <p class="yorum-toplam-metin">Based on <?php echo $yorumSayisi; ?> review<?php echo $yorumSayisi > 1 ? 's' : ''; ?></p>
+            </div>
+
+            <div class="yorum-ozet-orta">
+                <?php for ($star = 5; $star >= 1; $star--): ?>
+                    <div class="yorum-dagilim-satir">
+                        <span class="yorum-dagilim-yildiz">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                <i class="bi <?php echo $i <= $star ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                            <?php endfor; ?>
+                        </span>
+                        <div class="yorum-dagilim-bar">
+                            <div class="yorum-dagilim-dolu" style="width:<?php echo $yorumSayisi > 0 ? round(($dagilim[$star] / $yorumSayisi) * 100) : 0; ?>%;"></div>
+                        </div>
+                        <span class="yorum-dagilim-adet"><?php echo $dagilim[$star]; ?></span>
+                    </div>
+                <?php endfor; ?>
+            </div>
+
+            <div class="yorum-ozet-sag">
+                <?php if (girisYapmisMi() && !$dahaOnceYorumYapmis): ?>
+                    <button type="button" class="yorum-yaz-btn" onclick="document.getElementById('yorumFormWrap').style.display='block';this.style.display='none';">
+                        Write a review
+                    </button>
+                <?php elseif (!girisYapmisMi()): ?>
+                    <a href="/UrunDetay/magaza/giris.php" class="yorum-yaz-btn">Write a review</a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="yorum-liste">
+            <?php foreach ($urunYorumlari as $y): ?>
+                <div class="yorum-liste-item">
+                    <div class="yorum-liste-ust">
+                        <span class="yorum-liste-yildiz">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                <i class="bi <?php echo $i <= (int)$y['puan'] ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                            <?php endfor; ?>
+                        </span>
+                        <span class="yorum-liste-tarih">
+                            <?php echo date('F j, Y', strtotime($y['olusturma_tarihi'])); ?>
+                        </span>
+                    </div>
+                    <div class="yorum-liste-yazar">
+                        <i class="bi bi-person-circle"></i>
+                        <span><?php echo htmlspecialchars($y['yazan_ad']); ?></span>
+                    </div>
+                    <p class="yorum-liste-metin"><?php echo htmlspecialchars($y['yorum']); ?></p>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <?php else: ?>
+        <div class="yorum-bos-durum">
+            <p class="text-muted">Henüz yorum yapılmamış. İlk yorumu sen yaz!</p>
+            <?php if (girisYapmisMi()): ?>
+                <button type="button" class="yorum-yaz-btn" onclick="document.getElementById('yorumFormWrap').style.display='block';this.style.display='none';">
+                    Write a review
+                </button>
+            <?php else: ?>
+                <a href="/UrunDetay/magaza/giris.php" class="yorum-yaz-btn">Write a review</a>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (girisYapmisMi() && !$dahaOnceYorumYapmis): ?>
+        <div class="yorum-form-wrap" id="yorumFormWrap" style="display:none;">
+            <h3 class="yorum-form-baslik">Yorumunu Yaz</h3>
+            <form method="post" action="/UrunDetay/magaza/yorum-ekle.php">
+                <input type="hidden" name="urun_id" value="<?php echo $urun['id']; ?>">
+
+                <div class="yorum-form-yildiz-secici" id="yildizSecici">
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="bi bi-star" data-deger="<?php echo $i; ?>"></i>
+                    <?php endfor; ?>
+                    <input type="hidden" name="puan" id="puanInput" value="0" required>
+                </div>
+
+                <textarea name="yorum" class="yorum-form-textarea" rows="4" placeholder="Ürün hakkındaki düşüncelerini yaz..." required></textarea>
+
+                <button type="submit" class="yorum-yaz-btn">Gönder</button>
+            </form>
+        </div>
+        <?php endif; ?>
+    </section>
+
     <!-- Benzer Ürünler -->
     <?php if (count($benzerUrunler) > 0): ?>
         <section class="benzer-urunler">
@@ -238,7 +394,9 @@ if (!empty($urun['kategori'])) {
                 <?php endforeach; ?>
             </div>
         </section>
+        
     <?php endif; ?>
+    
 </div>
 
 <script>
@@ -258,6 +416,24 @@ if (!empty($urun['kategori'])) {
         if (val < 1) val = 1;
         if (val > maxVal) val = maxVal;
         input.value = val;
+    }
+
+    // Yorum formu — tıklanabilir yıldız seçici
+    const yildizSecici = document.getElementById('yildizSecici');
+    if (yildizSecici) {
+        const yildizlar = yildizSecici.querySelectorAll('i');
+        const puanInput = document.getElementById('puanInput');
+
+        yildizlar.forEach(yildiz => {
+            yildiz.addEventListener('click', function () {
+                const secilenDeger = parseInt(this.dataset.deger);
+                puanInput.value = secilenDeger;
+                yildizlar.forEach(y => {
+                    const d = parseInt(y.dataset.deger);
+                    y.className = d <= secilenDeger ? 'bi bi-star-fill' : 'bi bi-star';
+                });
+            });
+        });
     }
 </script>
 

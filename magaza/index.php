@@ -52,17 +52,90 @@ $kategoriler = $pdo->query("
 ?>
 
 <?php
-// Öne çıkan kategoriler sekmesi için her kategoriden örnek ürünler
-$oneCikanKategoriler = array_slice($kategoriler, 0, 6);
-$kategoriUrunleri = [];
-foreach ($oneCikanKategoriler as $kat) {
-    $ornekStmt = $pdo->prepare("SELECT * FROM urunler WHERE kategori = :kategori AND durum = 1 ORDER BY id DESC LIMIT 4");
-    $ornekStmt->execute([':kategori' => $kat['kategori']]);
-    $kategoriUrunleri[$kat['kategori']] = $ornekStmt->fetchAll();
+// "Customer Say!" bölümü için DummyJSON'dan yorumları çek
+function yorumlariGetir($adet = 9) {
+    $ch = curl_init("https://dummyjson.com/products?limit=15&select=title,reviews,thumbnail,price");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    $yanit = curl_exec($ch);
+    curl_close($ch);
+
+    if (!$yanit) return [];
+
+    $veri = json_decode($yanit, true);
+    if (empty($veri['products'])) return [];
+
+    $tumYorumlar = [];
+    foreach ($veri['products'] as $urun) {
+        if (empty($urun['reviews'])) continue;
+        foreach ($urun['reviews'] as $yorum) {
+            $tumYorumlar[] = [
+                'reviewerName' => $yorum['reviewerName'],
+                'comment'      => $yorum['comment'],
+                'rating'       => (int)round($yorum['rating']),
+                'urunAdi'      => $urun['title'],
+                'urunResim'    => $urun['thumbnail'],
+                'urunFiyat'    => $urun['price'],
+            ];
+        }
+    }
+
+    shuffle($tumYorumlar);
+    return array_slice($tumYorumlar, 0, $adet);
 }
+
+$musteriYorumlari = yorumlariGetir(9);
 ?>
 
-<!-- Öne Çıkan Kategoriler (sekmeli ürün önizleme, yalnızca ana sayfada) -->
+<?php
+// Öne çıkan kategoriler sekmesi — yalnızca İLK kategori için ürünleri PHP'de önceden çekiyoruz.
+// Diğer kategoriler, sekmesine tıklandığında AJAX (POST) ile yüklenecek.
+$oneCikanKategoriler = array_slice($kategoriler, 0, 6);
+$ilkKategoriUrunleri = [];
+
+if (count($oneCikanKategoriler) > 0) {
+    $ilkKategoriAdi = $oneCikanKategoriler[0]['kategori'];
+    $ornekStmt = $pdo->prepare("SELECT * FROM urunler WHERE kategori = :kategori AND durum = 1 ORDER BY id DESC LIMIT 4");
+    $ornekStmt->execute([':kategori' => $ilkKategoriAdi]);
+    $ilkKategoriUrunleri = $ornekStmt->fetchAll();
+}
+
+// Yardımcı fonksiyon: bir ürün listesine ortalama puan/yorum sayısı ekler
+function urunlereYildizEkle($pdo, $urunler) {
+    if (count($urunler) === 0) return $urunler;
+
+    $idler = array_column($urunler, 'id');
+    $yerTutucular = implode(',', array_fill(0, count($idler), '?'));
+    $puanStmt = $pdo->prepare("
+        SELECT urun_id, AVG(puan) AS ortalama, COUNT(*) AS adet
+        FROM urun_yorumlari
+        WHERE urun_id IN ($yerTutucular)
+        GROUP BY urun_id
+    ");
+    $puanStmt->execute($idler);
+
+    $puanMap = [];
+    foreach ($puanStmt->fetchAll() as $satir) {
+        $puanMap[$satir['urun_id']] = [
+            'ortalama' => round((float)$satir['ortalama'], 1),
+            'adet'     => (int)$satir['adet'],
+        ];
+    }
+
+    foreach ($urunler as &$u) {
+        $u['yildiz_ortalama'] = $puanMap[$u['id']]['ortalama'] ?? null;
+        $u['yildiz_adet'] = $puanMap[$u['id']]['adet'] ?? 0;
+    }
+    unset($u);
+
+    return $urunler;
+}
+
+$ilkKategoriUrunleri = urunlereYildizEkle($pdo, $ilkKategoriUrunleri);
+?>
+
+<!-- Öne Çıkan Kategoriler (sekmeli, ilk sekme dışında AJAX ile yüklenir) -->
 <?php if (!$filtreAktif && count($oneCikanKategoriler) > 0): ?>
 <section class="container py-5">
     <h2 class="section-baslik text-center">Öne Çıkan Kategoriler</h2>
@@ -71,47 +144,66 @@ foreach ($oneCikanKategoriler as $kat) {
         <?php foreach ($oneCikanKategoriler as $i => $kat): ?>
             <button type="button"
                     class="kategori-tab<?php echo $i === 0 ? ' aktif' : ''; ?>"
-                    data-panel="kategori-panel-<?php echo $i; ?>">
+                    data-kategori="<?php echo htmlspecialchars($kat['kategori']); ?>">
                 <?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?>
             </button>
         <?php endforeach; ?>
     </div>
 
-    <?php foreach ($oneCikanKategoriler as $i => $kat): ?>
-        <div class="kategori-panel<?php echo $i === 0 ? ' aktif' : ''; ?>" id="kategori-panel-<?php echo $i; ?>">
-            <div class="row g-4">
-                <?php foreach ($kategoriUrunleri[$kat['kategori']] as $urun): ?>
-                    <div class="col-6 col-md-3">
-                        <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
-                            <div class="urun-resim-wrap">
-                                <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
-                            </div>
-                            <div class="urun-bilgi">
-                                <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
-                                <span class="urun-fiyat">
-                                    $<?php echo number_format($urun['fiyat_usd'], 2); ?>
+    <div class="kategori-panel-alani">
+        <div class="kategori-spinner" id="kategoriSpinner"></div>
+        <div class="row g-4" id="kategoriUrunGrid">
+            <?php foreach ($ilkKategoriUrunleri as $urun): ?>
+                <div class="col-6 col-md-3">
+                    <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
+                        <div class="urun-resim-wrap">
+                            <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
+                        </div>
+                        <div class="urun-bilgi">
+                            <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
+                            <?php if ($urun['yildiz_ortalama'] !== null): ?>
+                                <span class="urun-yildizlar">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <i class="bi <?php echo $i <= round($urun['yildiz_ortalama']) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                                    <?php endfor; ?>
                                 </span>
-                                <?php if ((int)$urun['miktar'] === 0): ?>
-                                    <span class="urun-stok-yok">Stokta Yok</span>
-                                <?php endif; ?>
-                            </div>
-                        </a>
-                    </div>
-                <?php endforeach; ?>
-
-                <?php if (count($kategoriUrunleri[$kat['kategori']]) === 0): ?>
-                    <p class="text-muted">Bu kategoride henüz ürün yok.</p>
-                <?php endif; ?>
-            </div>
-
-            <div class="text-center mt-4">
-                <a href="index.php?kategori=<?php echo urlencode($kat['kategori']); ?>#urunler" class="btn btn-outline-dark rounded-pill px-4">
-                    Tüm <?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?> Ürünlerini Gör
-                </a>
-            </div>
+                            <?php endif; ?>
+                            <span class="urun-fiyat">$<?php echo number_format($urun['fiyat_usd'], 2); ?></span>
+                            <?php if ((int)$urun['miktar'] === 0): ?>
+                                <span class="urun-stok-yok">Stokta Yok</span>
+                            <?php endif; ?>
+                        </div>
+                    </a>
+                </div>
+            <?php endforeach; ?>
         </div>
-    <?php endforeach; ?>
+
+        <div class="text-center mt-4">
+            <a href="index.php?kategori=<?php echo urlencode($oneCikanKategoriler[0]['kategori']); ?>#urunler"
+               class="btn btn-outline-dark rounded-pill px-4" id="kategoriTumunuGorBtn">
+                Tüm <?php echo htmlspecialchars(ucfirst($oneCikanKategoriler[0]['kategori'])); ?> Ürünlerini Gör
+            </a>
+        </div>
+    </div>
 </section>
+
+<script>
+    // İlk sekmenin verisini JS önbelleğine baştan koyuyoruz ki
+    // kullanıcı ona geri dönünce tekrar sunucuya istek atılmasın.
+    window.KATEGORI_ILK_VERI = {
+        kategori: <?php echo json_encode($oneCikanKategoriler[0]['kategori'], JSON_UNESCAPED_UNICODE); ?>,
+        urunler: <?php echo json_encode(array_map(function ($u) {
+            return [
+                'id' => $u['id'],
+                'baslik_tr' => $u['baslik_tr'],
+                'fiyat_usd' => (float)$u['fiyat_usd'],
+                'miktar' => (int)$u['miktar'],
+                'ana_resim' => resim_url($u['ana_resim']),
+                'yildiz_ortalama' => $u['yildiz_ortalama'],
+            ];
+        }, $ilkKategoriUrunleri), JSON_UNESCAPED_UNICODE); ?>
+    };
+</script>
 <?php endif; ?>
 
 <?php
@@ -170,29 +262,54 @@ if (girisYapmisMi()) {
     $favoriIdler = array_column($favStmt->fetchAll(), 'urun_id');
 }
 
+// "Paket Yap, %30 Kazan" bölümü için ürünler (en yeni 6 ürün)
+$paketUrunleri = $pdo->query("
+    SELECT * FROM urunler WHERE durum = 1 ORDER BY id DESC LIMIT 6
+")->fetchAll();
+
+// Paket ürünleri için ortalama puan ve yorum sayısını tek sorguda çek
+$paketPuanlar = [];
+if (count($paketUrunleri) > 0) {
+    $idler = array_column($paketUrunleri, 'id');
+    $yerTutucular = implode(',', array_fill(0, count($idler), '?'));
+    $puanStmt = $pdo->prepare("
+        SELECT urun_id, AVG(puan) AS ortalama, COUNT(*) AS adet
+        FROM urun_yorumlari
+        WHERE urun_id IN ($yerTutucular)
+        GROUP BY urun_id
+    ");
+    $puanStmt->execute($idler);
+    foreach ($puanStmt->fetchAll() as $satir) {
+        $paketPuanlar[$satir['urun_id']] = [
+            'ortalama' => round((float)$satir['ortalama'], 1),
+            'adet'     => (int)$satir['adet'],
+        ];
+    }
+}
+
 // Toplam ürün sayısı (filtre sonucu)
 $toplamUrun = count($urunler);
 ?>
 
 <main class="container py-4" id="urunler">
+    <?php if ($filtreAktif): ?>
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="section-baslik mb-0">
-            <?php echo $seciliKategori ? htmlspecialchars(ucfirst($seciliKategori)) : 'Tüm Ürünler'; ?>
+            <?php echo htmlspecialchars(ucfirst($seciliKategori)); ?>
             <span style="font-size:0.85rem;font-weight:400;color:var(--renk-metin-acik);margin-left:8px;">
                 (<?php echo $toplamUrun; ?> ürün)
             </span>
         </h2>
-        <?php if ($filtreAktif): ?>
-            <div class="d-flex gap-2 align-items-center">
-                <button class="filtre-mobil-btn" id="filtreMobilBtn">
-                    <i class="bi bi-funnel"></i> Filtrele
-                </button>
-                <a href="index.php#urunler" class="btn btn-outline-secondary btn-sm" style="border-radius:var(--yuvarlatma-kucuk);">
-                    <i class="bi bi-x"></i> Filtreyi Temizle
-                </a>
-            </div>
-        <?php endif; ?>
+        <div class="d-flex gap-2 align-items-center">
+            <button class="filtre-mobil-btn" id="filtreMobilBtn">
+                <i class="bi bi-funnel"></i> Filtrele
+            </button>
+            <a href="index.php#urunler" class="btn btn-outline-secondary btn-sm" style="border-radius:var(--yuvarlatma-kucuk);">
+                <i class="bi bi-x"></i> Filtreyi Temizle
+            </a>
+        </div>
     </div>
+    <?php endif; ?>
 
     <?php if ($filtreAktif): ?>
     <!-- Kategoriye girildiğinde: Sol Filtre + Sağ Ürünler -->
@@ -308,42 +425,136 @@ $toplamUrun = count($urunler);
         </div>
     </div>
 
-    <?php else: ?>
-    <!-- Ana sayfa: Normal ürün grid -->
-    <?php if ($toplamUrun === 0): ?>
-        <p class="text-muted">Henüz ürün eklenmemiş.</p>
-    <?php else: ?>
-        <div class="row g-4">
-            <?php foreach ($urunler as $urun): ?>
-                <div class="col-6 col-md-4 col-lg-3">
-                    <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
-                        <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler) ? ' aktif' : ''; ?>" data-id="<?php echo $urun['id']; ?>" 
-                                        onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
-                                        title="Favorilere Ekle">
-                                    <i class="bi <?php echo in_array($urun['id'], $favoriIdler) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
-                                </button>
-                        <div class="urun-resim-wrap">
-                            <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
-                        </div>
-                        <div class="urun-bilgi">
-                            <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
-                            <span class="urun-fiyat">
-                                <?php if ((float)$urun['fiyat_tl'] > 0): ?>
-                                    <?php echo number_format($urun['fiyat_tl'], 2, ',', '.'); ?> TL
-                                <?php else: ?>
-                                    $<?php echo number_format($urun['fiyat_usd'], 2); ?>
-                                <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if (!$filtreAktif && count($paketUrunleri) > 0): ?>
+<section class="container py-5" id="paketBolumu">
+    <h2 class="section-baslik text-center">Paket Yap, %30 Kazan</h2>
+    <p class="text-center text-muted mb-4">3 ürün seçin, %30 indirim kazanın.</p>
+
+    <div class="paket-alan">
+        <div class="paket-urun-satiri">
+            <?php foreach ($paketUrunleri as $urun): ?>
+                <div class="paket-urun-kart"
+                     data-id="<?php echo $urun['id']; ?>"
+                     data-baslik="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
+                     data-fiyat="<?php echo (float)$urun['fiyat_usd']; ?>"
+                     data-resim="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>">
+                    <div class="urun-resim-wrap">
+                        <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
+                    </div>
+                    <div class="urun-bilgi">
+                        <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
+                        <?php $puanBilgi = $paketPuanlar[$urun['id']] ?? null; ?>
+                        <?php if ($puanBilgi): ?>
+                            <span class="paket-urun-yildiz">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <i class="bi <?php echo $i <= round($puanBilgi['ortalama']) ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                                <?php endfor; ?>
                             </span>
-                            <?php if ((int)$urun['miktar'] === 0): ?>
-                                <span class="urun-stok-yok">Stokta Yok</span>
-                            <?php endif; ?>
-                        </div>
-                    </a>
+                        <?php endif; ?>
+                        <span class="urun-fiyat">$<?php echo number_format($urun['fiyat_usd'], 2); ?></span>
+                    </div>
+                    <button type="button" class="paket-ekle-btn">Pakete Ekle</button>
                 </div>
             <?php endforeach; ?>
         </div>
-    <?php endif; ?>
-    <?php endif; ?>
+
+        <div class="paket-ozet" id="paketOzet">
+            <div class="paket-ozet-baslik">Paket İçeriği</div>
+            <p class="paket-ozet-aciklama"><strong> 3</strong> ürün ekleyin ve <strong>%30 Kazanın.</strong></p>
+
+            <div class="paket-ozet-liste" id="paketOzetListe">
+                <p class="text-muted" id="paketBosMesaj">Henüz ürün eklemediniz.</p>
+            </div>
+
+            <div class="paket-ozet-alt">
+                <div class="paket-ozet-satir">
+                    <span>Ara Toplam</span>
+                    <span id="paketAraToplam">$0.00</span>
+                </div>
+                <div class="paket-ozet-satir paket-indirim-satiri" id="paketIndirimSatiri" style="display:none;">
+                    <span>%30 İndirim</span>
+                    <span id="paketIndirimTutari">-$0.00</span>
+                </div>
+                <div class="paket-ozet-satir paket-toplam-satiri">
+                    <span>Toplam</span>
+                    <span id="paketToplam">$0.00</span>
+                </div>
+                <button type="button" class="paket-sepete-ekle-btn" id="paketSepeteEkleBtn" disabled>
+                    Tümünü Sepete Ekle
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 </main>
+
+<?php if (count($musteriYorumlari) > 0): ?>
+<section class="yorum-bolumu">
+    <div class="container">
+        <h2 class="section-baslik text-center">Customer Say!</h2>
+        <p class="text-center text-muted mb-4">Customers love our products and we always strive to please them all.</p>
+
+        <div class="yorum-slider-wrap">
+            <button type="button" class="yorum-ok yorum-ok-sol" id="yorumOkSol">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <div class="yorum-slider" id="yorumSlider">
+                <?php foreach ($musteriYorumlari as $yorum): ?>
+                    <div class="yorum-kart">
+                        <div class="yorum-yildizlar">
+                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                <i class="bi <?php echo $i <= $yorum['rating'] ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                            <?php endfor; ?>
+                        </div>
+                        <div class="yorum-isim">
+                            <?php echo htmlspecialchars($yorum['reviewerName']); ?>
+                            <span class="yorum-onay"><i class="bi bi-patch-check-fill"></i> Verified Buyer</span>
+                        </div>
+                        <p class="yorum-metin"><?php echo htmlspecialchars($yorum['comment']); ?></p>
+                        <div class="yorum-urun">
+                            <img src="<?php echo htmlspecialchars($yorum['urunResim']); ?>" alt="">
+                            <div>
+                                <span class="yorum-urun-ad"><?php echo htmlspecialchars($yorum['urunAdi']); ?></span>
+                                <span class="yorum-urun-fiyat">$<?php echo number_format($yorum['urunFiyat'], 2); ?></span>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <button type="button" class="yorum-ok yorum-ok-sag" id="yorumOkSag">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const slider = document.getElementById('yorumSlider');
+    const solBtn = document.getElementById('yorumOkSol');
+    const sagBtn = document.getElementById('yorumOkSag');
+    if (!slider || !solBtn || !sagBtn) return;
+
+    function kartGenisligi() {
+        const kart = slider.querySelector('.yorum-kart');
+        if (!kart) return 300;
+        const stil = window.getComputedStyle(kart);
+        return kart.offsetWidth + parseInt(stil.marginRight || 0) + 24;
+    }
+
+    solBtn.addEventListener('click', function () {
+        slider.scrollBy({ left: -kartGenisligi(), behavior: 'smooth' });
+    });
+
+    sagBtn.addEventListener('click', function () {
+        slider.scrollBy({ left: kartGenisligi(), behavior: 'smooth' });
+    });
+});
+</script>
+</section>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
