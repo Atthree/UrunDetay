@@ -59,28 +59,24 @@ $vitrinGorselleri = [
     <div class="container">
         <h2 class="category-highlights-baslik">Kategori Vitrinleri</h2>
         <p class="category-highlights-aciklama">Size özel seçilmiş kategorilerle alışverişin keyfini çıkarın.</p>
-    </div>
 
-    <!-- Bootstrap Carousel component KULLANILMIYOR: basit bir d-flex/overflow-auto
-         kaydırma şeridi. .container'ın dışında tutuluyor ki kartlar ekranın
-         sol/sağ kenarına kadar (edge-to-edge/peek) uzanabilsin. -->
-    <div class="kategori-vitrin-grid d-flex flex-nowrap overflow-auto">
-        <?php foreach ($vitrinKategorileri as $vk): ?>
-            <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart">
-                <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel">
-                <div class="category-highlight-overlay"></div>
-                <div class="category-highlight-metin">
-                    <span class="category-highlight-ad">
-                        <?php echo htmlspecialchars($vitrinBaslik[$vk]); ?><sup><?php echo (int)($vitrinSayilari[$vk] ?? 0); ?></sup>
-                    </span>
-                    <span class="category-highlight-slogan">Mağazam—kaliteli ve güvenilir alışveriş.</span>
-                </div>
-            </a>
-        <?php endforeach; ?>
-    </div>
+        <div class="category-highlights-grid kategori-vitrin-grid">
+            <?php foreach ($vitrinKategorileri as $vk): ?>
+                <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart">
+                    <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel">
+                    <div class="category-highlight-overlay"></div>
+                    <div class="category-highlight-metin">
+                        <span class="category-highlight-ad">
+                            <?php echo htmlspecialchars($vitrinBaslik[$vk]); ?><sup><?php echo (int)($vitrinSayilari[$vk] ?? 0); ?></sup>
+                        </span>
+                        <span class="category-highlight-slogan">Mağazam—kaliteli ve güvenilir alışveriş.</span>
+                    </div>
+                </a>
+            <?php endforeach; ?>
+        </div>
 
-    <!-- Sadece mobil/dar ekranda görünen nokta (dot) göstergesi; JS ile dolduruluyor -->
-    <div class="kategori-vitrin-noktalar" id="kategoriVitrinNoktalar"></div>
+        <div class="kategori-vitrin-noktalar" id="kategoriVitrinNoktalar"></div>
+    </div>
 </section>
 <?php endif; ?>
 

@@ -648,42 +648,32 @@ function sepetSidebarGuncelle() {
     });
 
     // ==========================================
-    // KATEGORİ VİTRİNLERİ — NOKTA (DOT) SAYFALAMA
+    // KATEGORİ VİTRİNLERİ — MOBİL DOT (NOKTA) SAYFALAMA
     // ==========================================
 
-    function kategoriVitrinNoktalariGuncelle() {
-        const grid = document.querySelector('.kategori-vitrin-grid');
-        const noktaAlani = document.getElementById('kategoriVitrinNoktalar');
-        if (!grid || !noktaAlani || window.innerWidth > 1024) {
-            if (noktaAlani) noktaAlani.innerHTML = '';
-            return;
-        }
+    const kategoriVitrinGrid = document.querySelector('.kategori-vitrin-grid');
+    const kategoriVitrinNoktalar = document.getElementById('kategoriVitrinNoktalar');
 
-        const kartlar = grid.children;
-        noktaAlani.innerHTML = '';
+    if (kategoriVitrinGrid && kategoriVitrinNoktalar) {
+        const kartlar = kategoriVitrinGrid.children;
 
         for (let i = 0; i < kartlar.length; i++) {
             const nokta = document.createElement('span');
             nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-            noktaAlani.appendChild(nokta);
+            kategoriVitrinNoktalar.appendChild(nokta);
         }
 
-        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
+        const noktaElemanlari = kategoriVitrinNoktalar.querySelectorAll('.nokta');
 
-        grid.onscroll = function () {
-            if (kartlar.length === 0) return;
-            // Boşluk (gap) fluid/clamp() ile tanımlı olduğundan sabit bir
-            // px değeri varsaymak yerine gerçek hesaplanmış değeri okuyoruz.
-            const bosluk = parseFloat(getComputedStyle(grid).columnGap) || 0;
-            const kartGenisligi = kartlar[0].offsetWidth + bosluk;
-            const maxIndex = kartlar.length - 1;
-            const aktifIndex = Math.min(maxIndex, Math.max(0, Math.round(grid.scrollLeft / kartGenisligi)));
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
-        };
+        kategoriVitrinGrid.addEventListener('scroll', function () {
+            const kartGenisligi = kartlar[0].offsetWidth + 14; // gap dahil
+            const aktifIndex = Math.round(kategoriVitrinGrid.scrollLeft / kartGenisligi);
+
+            noktaElemanlari.forEach((n, i) => {
+                n.classList.toggle('aktif', i === aktifIndex);
+            });
+        });
     }
-
-    kategoriVitrinNoktalariGuncelle();
-    window.addEventListener('resize', kategoriVitrinNoktalariGuncelle);
 
     // ==========================================
     // ÖNE ÇIKAN KATEGORİLER — NOKTA (DOT) SAYFALAMA
@@ -717,7 +707,6 @@ function sepetSidebarGuncelle() {
     }
 
     kategoriUrunNoktalariGuncelle();
-    window.addEventListener('resize', kategoriUrunNoktalariGuncelle);
 
     // ==========================================
     // 3'LÜ TANITIM BANNER — MOBİL NOKTA (DOT) SAYFALAMA
