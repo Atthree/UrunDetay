@@ -92,7 +92,7 @@ $vitrinGorselleri = [
 
 <!-- Öne Çıkan Kategoriler (sekmeli, ilk sekme dışında AJAX ile yüklenir) -->
 <?php if (!$urunlerGoster && count($oneCikanKategoriler) > 0): ?>
-<section class="container py-5">
+<section class="container bolum-boslugu">
     <h2 class="section-baslik text-center">Öne Çıkan Kategoriler</h2>
 
     <div class="kategori-tab-bar">
@@ -173,7 +173,7 @@ $vitrinGorselleri = [
 
 <!-- 3'lü Tanıtım Banner Grid'i (yalnızca ana sayfada) -->
 <?php if (!$urunlerGoster): ?>
-<section class="container py-5">
+<section class="container bolum-boslugu">
     <div class="tanitim-banner-grid">
         <a href="index.php?kategori=kitchen-accessories#urunler" class="tanitim-banner" style="background-image:url('/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg')">
             <div class="tanitim-banner-katman"></div>
@@ -336,7 +336,7 @@ $vitrinGorselleri = [
     <?php endif; ?>
 
     <?php if (!$urunlerGoster && count($paketUrunleri) > 0): ?>
-<section class="container py-5" id="paketBolumu">
+<section class="container bolum-boslugu" id="paketBolumu">
     <h2 class="section-baslik text-center">Paket Yap, %30 Kazan</h2>
     <p class="text-center text-muted mb-4">3 ürün seçin, %30 indirim kazanın.</p>
 
@@ -437,7 +437,7 @@ $urunYorumCarousel = $pdo->query("
 ")->fetchAll();
 ?>
 <?php if (!$filtreAktif && count($urunYorumCarousel) > 0): ?>
-<section class="yorum-bolum-arka py-5">
+<section class="yorum-bolum-arka bolum-boslugu">
     <div class="container">
         <h2 class="section-baslik text-center">Müşteri Yorumları</h2>
         <p class="text-center text-muted mb-4">Müşterilerimiz ürünlerimizi seviyor, siz de deneyin.</p>

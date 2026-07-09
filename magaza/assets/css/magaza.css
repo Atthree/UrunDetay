@@ -651,6 +651,13 @@ body {
     color: var(--renk-birincil);
 }
 
+/* Ana sayfada Bootstrap'ın py-5 (48px) yerine kullanılan, bölümler arası
+   dış boşluğu tüm ekran genişliklerinde tutarlı ve daha kompakt tutan ortak sınıf. */
+.bolum-boslugu {
+    padding-top: 32px;
+    padding-bottom: 32px;
+}
+
 .kategori-kart {
     display: block;
     text-decoration: none;
@@ -765,7 +772,7 @@ body {
 }
 
 .urun-bilgi {
-    padding: 14px 16px;
+    padding: 8px 16px;
 }
 
 .urun-baslik {
@@ -773,7 +780,7 @@ body {
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--renk-metin);
-    margin-bottom: 6px;
+    margin-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1009,7 +1016,7 @@ body {
 
 .urun-grid-alani .urun-kart {
     height: 100%;
-    min-height: 360px;
+    min-height: 336px;
     display: flex;
     flex-direction: column;
 }
@@ -1023,12 +1030,12 @@ body {
 }
 
 .urun-grid-alani .urun-bilgi {
-    padding: 12px 16px;
+    padding: 6px 16px;
 }
 
 @media (max-width: 767px) {
     .urun-grid-alani .urun-kart {
-        min-height: 280px;
+        min-height: 258px;
     }
 
     .urun-grid-alani .urun-resim {
@@ -1036,7 +1043,7 @@ body {
     }
 
     .urun-grid-alani .urun-bilgi {
-        padding: 10px 14px;
+        padding: 6px 14px;
     }
 }
 
@@ -1853,12 +1860,12 @@ body {
 }
 
 .paket-urun-kart .urun-bilgi {
-    padding: 14px 16px 8px;
+    padding: 10px 16px 6px;
 }
 
 .paket-ekle-btn {
-    margin: 8px 16px 16px;
-    padding: 10px;
+    margin: 5px 16px 11px;
+    padding: 8px;
     border: 2px solid var(--renk-birincil);
     background: var(--renk-beyaz);
     color: var(--renk-birincil);
@@ -2257,13 +2264,13 @@ body {
     display: block;
     color: var(--renk-altin);
     font-size: 0.78rem;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 /* Why Choose Us Section */
 .why-choose-us {
     background: var(--renk-beyaz);
-    padding: 80px 0;
+    padding: 50px 0;
     text-align: center;
 }
 
@@ -2332,7 +2339,7 @@ body {
 
 @media (max-width: 1023px) {
     .why-choose-us {
-        padding: 56px 0;
+        padding: 36px 0;
     }
 
     .why-choose-us-baslik {
@@ -2359,14 +2366,27 @@ body {
     }
 
     .why-choose-us-oge {
-        flex: 0 0 calc((100% - 16px) / 2);
         scroll-snap-align: start;
+    }
+}
+
+/* Tablet (768px - 1023px): aynı anda 2 kart */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .why-choose-us-oge {
+        flex: 0 0 calc((100% - 16px) / 2);
+    }
+}
+
+/* Mobil (767px ve altı): aynı anda 1 kart, tam genişlik */
+@media (max-width: 767px) {
+    .why-choose-us-oge {
+        flex: 0 0 100%;
     }
 }
 
 /* Promo Banners Section */
 .promo-banners {
-    padding: 64px 0 0;
+    padding: 40px 0 0;
 }
 
 .promo-banners-grid {
@@ -2456,7 +2476,7 @@ body {
 
 @media (max-width: 1023px) {
     .promo-banners {
-        padding: 40px 0 0;
+        padding: 24px 0 0;
     }
 
     .promo-banners-grid {
@@ -2493,7 +2513,7 @@ body {
 
 /* Category Highlights Section */
 .category-highlights {
-    padding: 64px 0;
+    padding: 40px 0;
 }
 
 .category-highlights-baslik {
@@ -2731,7 +2751,7 @@ body {
 .tanitim-banner {
     position: relative;
     display: block;
-    height: 420px;
+    height: 616px;
     border-radius: var(--yuvarlatma);
     overflow: hidden;
     background-size: cover;
@@ -3036,21 +3056,21 @@ body {
     }
 }
 
-/* Mobil (767px ve altı): aynı anda 1 kart */
+/* Mobil (767px ve altı): aynı anda 1 kart, sağdan bir sonraki kartın
+   dilimi görünecek şekilde ("peek efekti") %100 yerine %88 genişlik */
 @media (max-width: 767px) {
     .kategori-vitrin-grid {
         gap: 12px;
     }
 
     .kategori-vitrin-grid .category-highlight-kart {
-        flex: 0 0 100%;
+        flex: 0 0 88%;
         height: 380px;
     }
 
+    /* Ok butonları mobilde tamamen gizlenir, gezinme sadece swipe/dot ile yapılır */
     .kategori-vitrin-ok {
-        width: 38px;
-        height: 38px;
-        font-size: 1rem;
+        display: none;
     }
 }
 
@@ -3164,14 +3184,15 @@ body {
     }
 }
 
-/* Mobil (767px ve altı): aynı anda 2 kart */
+/* Mobil (767px ve altı): aynı anda 1 kart, sağdan bir sonraki kartın
+   dilimi görünecek şekilde ("peek efekti") %91 genişlik */
 @media (max-width: 767px) {
     #kategoriUrunGrid {
         gap: 12px;
     }
 
     .kategori-urun-slayt {
-        flex: 0 0 calc((100% - 12px) / 2);
+        flex: 0 0 70%;
         max-width: none;
     }
 }
@@ -3198,11 +3219,10 @@ body {
     }
 
     .tanitim-banner {
-        flex: 0 0 calc((100% - 12px) / 2);
         width: auto;
         max-width: none;
         scroll-snap-align: start;
-        height: 320px;
+        height: 440px;
         border-radius: 16px;
         margin: 0;
     }
@@ -3248,9 +3268,25 @@ body {
     }
 }
 
+/* Tablet (768px - 1023px): aynı anda 2 kart */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .tanitim-banner {
+        flex: 0 0 calc((100% - 12px) / 2);
+    }
+}
+
+/* Mobil (767px ve altı): aynı anda 1 kart, tam genişlik.
+   Yükseklik, tablet'in 440px değerinden BAĞIMSIZ, mobile özel olarak ayarlanır. */
+@media (max-width: 767px) {
+    .tanitim-banner {
+        flex: 0 0 100%;
+        height: 500px;
+    }
+}
+
 @media (max-width: 480px) {
     .tanitim-banner {
-        height: 260px;
+        height: 450px;
     }
 
     .tanitim-banner-icerik h3 {
@@ -3286,9 +3322,10 @@ body {
 @media (max-width: 1023px) {
     .paket-ozet {
         position: sticky;
+        top: auto; /* masaüstü kuralındaki top:90px sticky'yi üste değil alta yapıştırmak için iptal edilir */
         bottom: 0;
         width: 100%;
-        z-index: 1800;
+        z-index: 900; /* .site-header (1000) her zaman önde kalsın diye ondan düşük tutulur */
         border-radius: 20px 20px 0 0;
         border: none;
         border-top: 1px solid var(--renk-kenar);
@@ -3331,17 +3368,17 @@ body {
     /* Panel sabitlendiği için sayfanın en altına ekstra boşluk ekleyip
        diğer içeriğin panelin altında kalmamasını sağla */
     #paketBolumu {
-        margin-bottom: 24px;
+        margin-bottom: 16px;
     }
 }
 
 @media (max-width: 767px) {
     .paket-ozet {
-        bottom: 74px; /* mobil-alt-menu yüksekliği (64px) + biraz boşluk */
+        bottom: 64px; /* mobil-alt-menu yüksekliğiyle aynı: boşluksuz, tam üstüne oturur */
     }
 
     #paketBolumu {
-        margin-bottom: 90px;
+        margin-bottom: 60px;
     }
 }
 
@@ -3525,10 +3562,6 @@ body {
         display: none;
     }
 
-    .urun-yorum-kart {
-        flex: 0 0 calc((100% - 20px) / 2);
-    }
-
     .yorum-noktalar {
         display: flex;
         justify-content: center;
@@ -3549,6 +3582,20 @@ body {
         background: var(--renk-birincil);
         width: 18px;
         border-radius: 3px;
+    }
+}
+
+/* Tablet (768px - 1023px): aynı anda 2 kart */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .urun-yorum-kart {
+        flex: 0 0 calc((100% - 20px) / 2);
+    }
+}
+
+/* Mobil (767px ve altı): aynı anda 1 kart, tam genişlik */
+@media (max-width: 767px) {
+    .urun-yorum-kart {
+        flex: 0 0 100%;
     }
 }
 
