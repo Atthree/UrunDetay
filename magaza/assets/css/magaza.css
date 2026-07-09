@@ -813,10 +813,13 @@ body {
     gap: 30px;
 }
 
-/* ≥992px: offcanvas-lg normal akışa döner, sabit sticky sütun görünümü burada tanımlanıyor.
-   Bilinçli olarak min-width sorgusuna alındı ki <992px'de Bootstrap'ın offcanvas
-   konumlandırması (position:fixed vb.) bu kurallarla çakışmasın. */
-@media (min-width: 992px) {
+/* ≥1024px: sabit sticky sütun görünümü burada tanımlanıyor (sitenin geri kalanıyla
+   tutarlı eşik). NOT: HTML'deki .offcanvas-lg class'ı Bootstrap'ın KENDİ dahili
+   992px eşiğinde modal/drawer davranışını zaten kapatıyor - bu, magaza.css'ten
+   bağımsız, Bootstrap'a gömülü bir değer, buradan değiştirilemez. Yani 992-1023px
+   arasında offcanvas-lg normal akışa dönmüş olacak ama bu sticky/sütun stili henüz
+   devreye girmeyecek; o aralıkta filtre-sidebar düz/stilsiz bir blok gibi görünebilir. */
+@media (min-width: 1025px) {
     .filtre-sidebar {
         width: 260px;
         flex-shrink: 0;
@@ -2005,7 +2008,7 @@ body {
     cursor: not-allowed;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1024px) {
     .paket-alan {
         flex-direction: column;
     }
@@ -3319,7 +3322,7 @@ body {
     flex-shrink: 0;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     .paket-ozet {
         position: sticky;
         top: auto; /* masaüstü kuralındaki top:90px sticky'yi üste değil alta yapıştırmak için iptal edilir */
