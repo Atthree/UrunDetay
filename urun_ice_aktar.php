@@ -44,6 +44,11 @@ try {
         18, 1, :ana_resim, 1, 1, 1, 1
     )");
 
+    // Ürünün "images" dizisindeki ek resimleri urun_resimler tablosuna kaydedecek sorgu
+    $stmtResimEkle = $pdo->prepare(
+        "INSERT INTO urun_resimler (urun_id, resim_yolu, sira) VALUES (:urun_id, :resim_yolu, :sira)"
+    );
+
     foreach ($veri['products'] as $u) {
         // sku yoksa id'den kendi kodumuzu üretelim
         $kodu = !empty($u['sku']) ? $u['sku'] : ('dummy_' . $u['id']);
@@ -64,6 +69,24 @@ try {
             ':fiyat_usd'   => (float)($u['price'] ?? 0),
             ':ana_resim'   => $u['thumbnail'] ?? null,
         ]);
+
+        $urunId = $pdo->lastInsertId();
+
+        // DummyJSON'daki "images" dizisini ek resim olarak kaydet (thumbnail ile aynı olan varsa atla)
+        if (!empty($u['images']) && is_array($u['images'])) {
+            $sira = 0;
+            foreach ($u['images'] as $resimUrl) {
+                if ($resimUrl === ($u['thumbnail'] ?? null)) {
+                    continue;
+                }
+                $stmtResimEkle->execute([
+                    ':urun_id'    => $urunId,
+                    ':resim_yolu' => $resimUrl,
+                    ':sira'       => $sira,
+                ]);
+                $sira++;
+            }
+        }
 
         $eklenen++;
     }
