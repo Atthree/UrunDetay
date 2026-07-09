@@ -2014,8 +2014,21 @@ body {
     }
 
     .paket-urun-satiri {
-        grid-template-columns: repeat(2, 1fr);
         width: 100%;
+    }
+}
+
+/* Tablet (768px - 1024px): masaüstüyle aynı 3 sütun, statik grid (carousel yok) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .paket-urun-satiri {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Mobil (767px ve altı): 2 sütun */
+@media (max-width: 767px) {
+    .paket-urun-satiri {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -2340,7 +2353,7 @@ body {
     max-width: 240px;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     .why-choose-us {
         padding: 36px 0;
     }
@@ -2373,8 +2386,8 @@ body {
     }
 }
 
-/* Tablet (768px - 1023px): aynı anda 2 kart */
-@media (min-width: 768px) and (max-width: 1023px) {
+/* Tablet (768px - 1024px): aynı anda 2 kart */
+@media (min-width: 768px) and (max-width: 1024px) {
     .why-choose-us-oge {
         flex: 0 0 calc((100% - 16px) / 2);
     }
@@ -2477,7 +2490,7 @@ body {
     object-fit: cover;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     .promo-banners {
         padding: 24px 0 0;
     }
@@ -2731,6 +2744,13 @@ body {
 
 .video-cta-btn:hover {
     background: #d9d9d9;
+}
+
+/* Tablet (768px - 1024px): mobil (520px) ile masaüstü (640px) arası orantılı yükseklik */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .video-cta-section {
+        height: 580px;
+    }
 }
 
 @media (max-width: 767px) {
@@ -3059,6 +3079,15 @@ body {
     }
 }
 
+/* Tablet (768px - 1024px, asıl tablet tanımı): ok butonları gizli, sadece
+   swipe/dot ile gezinme. 1025px-1199px ("geniş tablet/küçük masaüstü")
+   aralığında oklar üstteki 1199px kuralından miras kalarak görünür kalır. */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .kategori-vitrin-ok {
+        display: none;
+    }
+}
+
 /* Mobil (767px ve altı): aynı anda 1 kart, sağdan bir sonraki kartın
    dilimi görünecek şekilde ("peek efekti") %100 yerine %88 genişlik */
 @media (max-width: 767px) {
@@ -3201,10 +3230,10 @@ body {
 }
 
 /* ==========================================
-   3'LÜ TANITIM BANNER — TABLET/MOBİL CAROUSEL (≤1023px, 2 kart görünür)
+   3'LÜ TANITIM BANNER — TABLET/MOBİL CAROUSEL (≤1024px, 2 kart görünür)
    ========================================== */
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     .tanitim-banner-grid {
         display: flex !important;
         flex-wrap: nowrap;
@@ -3271,8 +3300,8 @@ body {
     }
 }
 
-/* Tablet (768px - 1023px): aynı anda 2 kart */
-@media (min-width: 768px) and (max-width: 1023px) {
+/* Tablet (768px - 1024px): aynı anda 2 kart */
+@media (min-width: 768px) and (max-width: 1024px) {
     .tanitim-banner {
         flex: 0 0 calc((100% - 12px) / 2);
     }
@@ -3560,7 +3589,7 @@ body {
     right: -22px;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
     .yorum-carousel-ok {
         display: none;
     }
@@ -3588,8 +3617,8 @@ body {
     }
 }
 
-/* Tablet (768px - 1023px): aynı anda 2 kart */
-@media (min-width: 768px) and (max-width: 1023px) {
+/* Tablet (768px - 1024px): aynı anda 2 kart */
+@media (min-width: 768px) and (max-width: 1024px) {
     .urun-yorum-kart {
         flex: 0 0 calc((100% - 20px) / 2);
     }
