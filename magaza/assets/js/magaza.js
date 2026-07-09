@@ -600,6 +600,10 @@ function sepetSidebarGuncelle() {
             ? '<p class="text-muted">Bu kategoride henüz ürün yok.</p>'
             : urunler.map(kategoriUrunKartiOlustur).join('');
 
+        // Kategori değişince carousel'i başa sar (bkz. istek: sekme değişince
+        // sayfa/nokta durumu sıfırlanmalı, önceki kategorinin scroll konumu kalmamalı)
+        grid.scrollLeft = 0;
+
         const gorBtn = document.getElementById('kategoriTumunuGorBtn');
         if (gorBtn) {
             gorBtn.href = '/UrunDetay/magaza/index.php?kategori=' + encodeURIComponent(kategori) + '#urunler';
@@ -648,63 +652,111 @@ function sepetSidebarGuncelle() {
     });
 
     // ==========================================
-    // KATEGORİ VİTRİNLERİ — MOBİL DOT (NOKTA) SAYFALAMA
+    // KATEGORİ VİTRİNLERİ — OK BUTONLARI + NOKTA (DOT) SAYFALAMA
     // ==========================================
 
-    const kategoriVitrinGrid = document.querySelector('.kategori-vitrin-grid');
+    const kategoriVitrinGrid = document.getElementById('kategoriVitrinGrid');
     const kategoriVitrinNoktalar = document.getElementById('kategoriVitrinNoktalar');
+    const kategoriVitrinOkSol = document.getElementById('kategoriVitrinOkSol');
+    const kategoriVitrinOkSag = document.getElementById('kategoriVitrinOkSag');
 
-    if (kategoriVitrinGrid && kategoriVitrinNoktalar) {
+    if (kategoriVitrinGrid) {
         const kartlar = kategoriVitrinGrid.children;
 
-        for (let i = 0; i < kartlar.length; i++) {
-            const nokta = document.createElement('span');
-            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-            kategoriVitrinNoktalar.appendChild(nokta);
+        function kategoriVitrinBosluk() {
+            const stil = getComputedStyle(kategoriVitrinGrid);
+            return parseFloat(stil.columnGap || stil.gap) || 0;
         }
 
-        const noktaElemanlari = kategoriVitrinNoktalar.querySelectorAll('.nokta');
+        function kategoriVitrinKaydir(yon) {
+            if (kartlar.length === 0) return;
+            const kartGenisligi = kartlar[0].offsetWidth + kategoriVitrinBosluk();
+            kategoriVitrinGrid.scrollBy({ left: yon * kartGenisligi, behavior: 'smooth' });
+        }
 
-        kategoriVitrinGrid.addEventListener('scroll', function () {
-            const kartGenisligi = kartlar[0].offsetWidth + 14; // gap dahil
-            const aktifIndex = Math.round(kategoriVitrinGrid.scrollLeft / kartGenisligi);
+        function kategoriVitrinOkDurumGuncelle() {
+            const maxScroll = kategoriVitrinGrid.scrollWidth - kategoriVitrinGrid.clientWidth;
+            if (kategoriVitrinOkSol) kategoriVitrinOkSol.disabled = kategoriVitrinGrid.scrollLeft <= 4;
+            if (kategoriVitrinOkSag) kategoriVitrinOkSag.disabled = kategoriVitrinGrid.scrollLeft >= maxScroll - 4;
+        }
 
-            noktaElemanlari.forEach((n, i) => {
-                n.classList.toggle('aktif', i === aktifIndex);
+        if (kategoriVitrinOkSol) kategoriVitrinOkSol.addEventListener('click', () => kategoriVitrinKaydir(-1));
+        if (kategoriVitrinOkSag) kategoriVitrinOkSag.addEventListener('click', () => kategoriVitrinKaydir(1));
+
+        kategoriVitrinOkDurumGuncelle();
+        window.addEventListener('resize', kategoriVitrinOkDurumGuncelle);
+
+        if (kategoriVitrinNoktalar) {
+            for (let i = 0; i < kartlar.length; i++) {
+                const nokta = document.createElement('span');
+                nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+                kategoriVitrinNoktalar.appendChild(nokta);
+            }
+
+            const noktaElemanlari = kategoriVitrinNoktalar.querySelectorAll('.nokta');
+
+            kategoriVitrinGrid.addEventListener('scroll', function () {
+                const kartGenisligi = kartlar[0].offsetWidth + kategoriVitrinBosluk();
+                const maxIndex = kartlar.length - 1;
+                const aktifIndex = Math.min(maxIndex, Math.max(0, Math.round(kategoriVitrinGrid.scrollLeft / kartGenisligi)));
+
+                noktaElemanlari.forEach((n, i) => {
+                    n.classList.toggle('aktif', i === aktifIndex);
+                });
             });
-        });
+        }
+
+        kategoriVitrinGrid.addEventListener('scroll', kategoriVitrinOkDurumGuncelle);
     }
 
     // ==========================================
-    // ÖNE ÇIKAN KATEGORİLER — NOKTA (DOT) SAYFALAMA
+    // ÖNE ÇIKAN KATEGORİLER — SAYFA (PAGE) BAZLI NOKTA (DOT) SAYFALAMA
+    // Kart başına değil, aynı anda görünen kart GRUBU (sayfa) başına bir
+    // nokta gösterilir; noktalar tıklanabilir, kategori değişince veya
+    // ekran boyutu değişince (sayfa başına kart sayısı değiştiğinden)
+    // yeniden hesaplanır.
     // ==========================================
 
     function kategoriUrunNoktalariGuncelle() {
         const grid = document.getElementById('kategoriUrunGrid');
         const noktaAlani = document.getElementById('kategoriUrunNoktalar');
-        if (!grid || !noktaAlani || window.innerWidth > 767) {
+        if (!grid || !noktaAlani || window.innerWidth > 1199) {
             if (noktaAlani) noktaAlani.innerHTML = '';
+            grid.onscroll = null;
             return;
         }
 
         const kartlar = grid.children;
         noktaAlani.innerHTML = '';
+        grid.onscroll = null;
 
-        for (let i = 0; i < kartlar.length; i++) {
+        if (kartlar.length === 0) return;
+
+        const stil = getComputedStyle(grid);
+        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
+        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
+        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
+        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
+        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
+
+        for (let i = 0; i < toplamSayfa; i++) {
             const nokta = document.createElement('span');
             nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            nokta.addEventListener('click', function () {
+                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
+            });
             noktaAlani.appendChild(nokta);
         }
 
         const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
 
         grid.onscroll = function () {
-            if (kartlar.length === 0) return;
-            const kartGenisligi = kartlar[0].offsetWidth + 16;
-            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
         };
     }
+
+    window.addEventListener('resize', kategoriUrunNoktalariGuncelle);
 
     kategoriUrunNoktalariGuncelle();
 
@@ -715,29 +767,39 @@ function sepetSidebarGuncelle() {
     function tanitimBannerNoktalariGuncelle() {
         const grid = document.querySelector('.tanitim-banner-grid');
         const noktaAlani = document.getElementById('tanitimBannerNoktalar');
-        if (!grid || !noktaAlani) return;
-
-        if (window.innerWidth > 767) {
-            noktaAlani.innerHTML = '';
+        if (!grid || !noktaAlani || window.innerWidth > 1023) {
+            if (noktaAlani) noktaAlani.innerHTML = '';
+            if (grid) grid.onscroll = null;
             return;
         }
 
         const bannerlar = grid.children;
         noktaAlani.innerHTML = '';
+        grid.onscroll = null;
 
-        for (let i = 0; i < bannerlar.length; i++) {
+        if (bannerlar.length === 0) return;
+
+        const stil = getComputedStyle(grid);
+        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
+        const bannerGenisligi = bannerlar[0].offsetWidth + bosluk;
+        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / bannerGenisligi));
+        const toplamSayfa = Math.max(1, Math.ceil(bannerlar.length / sayfaBasinaKart));
+        const sayfaGenisligi = sayfaBasinaKart * bannerGenisligi;
+
+        for (let i = 0; i < toplamSayfa; i++) {
             const nokta = document.createElement('span');
             nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            nokta.addEventListener('click', function () {
+                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
+            });
             noktaAlani.appendChild(nokta);
         }
 
         const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
 
         grid.onscroll = function () {
-            if (bannerlar.length === 0) return;
-            const bannerGenisligi = bannerlar[0].offsetWidth;
-            const aktifIndex = Math.round(grid.scrollLeft / bannerGenisligi);
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
         };
     }
 
@@ -751,34 +813,68 @@ function sepetSidebarGuncelle() {
     function yorumNoktalariGuncelle() {
         const grid = document.getElementById('yorumCarousel');
         const noktaAlani = document.getElementById('yorumNoktalar');
-        if (!grid || !noktaAlani) return;
-
-        if (window.innerWidth > 767) {
-            noktaAlani.innerHTML = '';
+        if (!grid || !noktaAlani || window.innerWidth > 1023) {
+            if (noktaAlani) noktaAlani.innerHTML = '';
+            if (grid) grid.onscroll = null;
             return;
         }
 
         const kartlar = grid.children;
         noktaAlani.innerHTML = '';
+        grid.onscroll = null;
 
-        for (let i = 0; i < kartlar.length; i++) {
+        if (kartlar.length === 0) return;
+
+        const stil = getComputedStyle(grid);
+        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
+        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
+        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
+        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
+        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
+
+        for (let i = 0; i < toplamSayfa; i++) {
             const nokta = document.createElement('span');
             nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            nokta.addEventListener('click', function () {
+                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
+            });
             noktaAlani.appendChild(nokta);
         }
 
         const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
 
         grid.onscroll = function () {
-            if (kartlar.length === 0) return;
-            const kartGenisligi = kartlar[0].offsetWidth + 20;
-            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
         };
     }
 
     yorumNoktalariGuncelle();
     window.addEventListener('resize', yorumNoktalariGuncelle);
+
+    // ==========================================
+    // MÜŞTERİ YORUMLARI — MASAÜSTÜ OK BUTONLARI (SAYFA BAZLI KAYDIRMA)
+    // ==========================================
+
+    (function () {
+        const grid = document.getElementById('yorumCarousel');
+        const okSol = document.getElementById('yorumCarouselOkSol');
+        const okSag = document.getElementById('yorumCarouselOkSag');
+        if (!grid || !okSol || !okSag) return;
+
+        function durumGuncelle() {
+            const maxScroll = grid.scrollWidth - grid.clientWidth;
+            okSol.disabled = grid.scrollLeft <= 4;
+            okSag.disabled = grid.scrollLeft >= maxScroll - 4;
+        }
+
+        okSol.addEventListener('click', () => grid.scrollBy({ left: -grid.clientWidth, behavior: 'smooth' }));
+        okSag.addEventListener('click', () => grid.scrollBy({ left: grid.clientWidth, behavior: 'smooth' }));
+
+        grid.addEventListener('scroll', durumGuncelle);
+        window.addEventListener('resize', durumGuncelle);
+        durumGuncelle();
+    })();
 
     // ==========================================
     // İNDİRİM KARTLARI — MOBİL NOKTA (DOT) SAYFALAMA
@@ -787,29 +883,39 @@ function sepetSidebarGuncelle() {
     function indirimKartNoktalariGuncelle() {
         const grid = document.querySelector('.promo-banners-grid');
         const noktaAlani = document.getElementById('indirimKartNoktalar');
-        if (!grid || !noktaAlani) return;
-
-        if (window.innerWidth > 767) {
-            noktaAlani.innerHTML = '';
+        if (!grid || !noktaAlani || window.innerWidth > 1023) {
+            if (noktaAlani) noktaAlani.innerHTML = '';
+            if (grid) grid.onscroll = null;
             return;
         }
 
         const kartlar = grid.children;
         noktaAlani.innerHTML = '';
+        grid.onscroll = null;
 
-        for (let i = 0; i < kartlar.length; i++) {
+        if (kartlar.length === 0) return;
+
+        const stil = getComputedStyle(grid);
+        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
+        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
+        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
+        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
+        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
+
+        for (let i = 0; i < toplamSayfa; i++) {
             const nokta = document.createElement('span');
             nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            nokta.addEventListener('click', function () {
+                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
+            });
             noktaAlani.appendChild(nokta);
         }
 
         const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
 
         grid.onscroll = function () {
-            if (kartlar.length === 0) return;
-            const kartGenisligi = kartlar[0].offsetWidth + 16;
-            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
         };
     }
 
@@ -823,29 +929,39 @@ function sepetSidebarGuncelle() {
     function ozellikKartNoktalariGuncelle() {
         const grid = document.querySelector('.why-choose-us-grid');
         const noktaAlani = document.getElementById('ozellikKartNoktalar');
-        if (!grid || !noktaAlani) return;
-
-        if (window.innerWidth > 767) {
-            noktaAlani.innerHTML = '';
+        if (!grid || !noktaAlani || window.innerWidth > 1023) {
+            if (noktaAlani) noktaAlani.innerHTML = '';
+            if (grid) grid.onscroll = null;
             return;
         }
 
         const kartlar = grid.children;
         noktaAlani.innerHTML = '';
+        grid.onscroll = null;
 
-        for (let i = 0; i < kartlar.length; i++) {
+        if (kartlar.length === 0) return;
+
+        const stil = getComputedStyle(grid);
+        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
+        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
+        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
+        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
+        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
+
+        for (let i = 0; i < toplamSayfa; i++) {
             const nokta = document.createElement('span');
             nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
+            nokta.addEventListener('click', function () {
+                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
+            });
             noktaAlani.appendChild(nokta);
         }
 
         const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
 
         grid.onscroll = function () {
-            if (kartlar.length === 0) return;
-            const kartGenisligi = kartlar[0].offsetWidth + 16;
-            const aktifIndex = Math.round(grid.scrollLeft / kartGenisligi);
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifIndex));
+            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
+            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
         };
     }
 

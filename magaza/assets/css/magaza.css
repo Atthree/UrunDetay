@@ -2007,12 +2007,6 @@ body {
         grid-template-columns: repeat(2, 1fr);
         width: 100%;
     }
-
-    .paket-ozet {
-        width: 100%;
-        position: static;
-    }
-    
 }
 
 .urun-detay-puan {
@@ -2336,14 +2330,7 @@ body {
     max-width: 240px;
 }
 
-@media (max-width: 991px) {
-    .why-choose-us-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 40px 24px;
-    }
-}
-
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
     .why-choose-us {
         padding: 56px 0;
     }
@@ -2372,8 +2359,8 @@ body {
     }
 
     .why-choose-us-oge {
-        flex: 0 0 88%;
-        scroll-snap-align: center;
+        flex: 0 0 calc((100% - 16px) / 2);
+        scroll-snap-align: start;
     }
 }
 
@@ -2467,7 +2454,7 @@ body {
     object-fit: cover;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
     .promo-banners {
         padding: 40px 0 0;
     }
@@ -2488,8 +2475,9 @@ body {
     }
 
     .promo-banner {
-        flex: 0 0 88%;
-        scroll-snap-align: center;
+        flex: 0 0 100%;
+        width: 100%;
+        scroll-snap-align: start;
         padding: 28px;
         min-height: 220px;
     }
@@ -2586,25 +2574,48 @@ body {
     color: rgba(255, 255, 255, 0.8);
 }
 
-@media (max-width: 767px) {
-    .category-highlights-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-    }
-
-    .category-highlight-kart {
-        height: 380px;
-    }
+/* Kategori Vitrinleri — 1200px ve üzeri: yukarıdaki 4 kolonlu sabit grid
+   aynen kalır. 1199px ve altında (tablet + mobil) carousel'e dönüşür,
+   bkz. aşağıdaki "KATEGORİ VİTRİNLERİ — CAROUSEL" bloğu. */
+.kategori-vitrin-wrap {
+    position: relative;
 }
 
-@media (max-width: 480px) {
-    .category-highlights-grid {
-        grid-template-columns: 1fr;
-    }
+.kategori-vitrin-ok {
+    display: none; /* sadece carousel modunda (<=1199px) görünür */
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    color: #111;
+    font-size: 1.1rem;
+    cursor: pointer;
+    z-index: 5;
+    transition: var(--gecis);
+}
 
-    .category-highlight-kart {
-        height: 320px;
-    }
+.kategori-vitrin-ok:hover {
+    background: #fff;
+}
+
+.kategori-vitrin-ok:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.kategori-vitrin-ok-sol {
+    left: 8px;
+}
+
+.kategori-vitrin-ok-sag {
+    right: 8px;
 }
 
 /* Video CTA Section */
@@ -2770,16 +2781,6 @@ body {
 .tanitim-banner-icerik .btn {
     font-weight: 600;
     color: var(--renk-birincil);
-}
-
-@media (max-width: 991px) {
-    .tanitim-banner-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .tanitim-banner {
-        height: 320px;
-    }
 }
 
 /* ==========================================
@@ -2967,16 +2968,22 @@ body {
 }
 
 /* ==========================================
-   KATEGORİ VİTRİNLERİ — MOBİL YATAY CAROUSEL
+   KATEGORİ VİTRİNLERİ — CAROUSEL (1199px ve altı: tablet + mobil)
+   1200px+ üstteki 4 kolonlu sabit grid olarak kalır (değişmez).
    ========================================== */
 
-@media (max-width: 767px) {
+@media (max-width: 1199px) {
+    .kategori-vitrin-ok {
+        display: flex;
+    }
+
     .kategori-vitrin-grid {
         display: flex !important;
         flex-wrap: nowrap;
         overflow-x: auto;
+        scroll-behavior: smooth;
         scroll-snap-type: x mandatory;
-        gap: 14px;
+        gap: 16px;
         padding-bottom: 4px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
@@ -2987,9 +2994,16 @@ body {
     }
 
     .kategori-vitrin-grid .category-highlight-kart {
-        flex: 0 0 82%;
         scroll-snap-align: start;
-        height: 320px;
+    }
+
+    /* Metinlerin kırılıp kart yüksekliğini bozmaması için hafif küçültme */
+    .category-highlight-ad {
+        font-size: 1.15rem;
+    }
+
+    .category-highlight-slogan {
+        font-size: 0.72rem;
     }
 
     .kategori-vitrin-noktalar {
@@ -3011,6 +3025,32 @@ body {
         background: var(--renk-birincil);
         width: 18px;
         border-radius: 3px;
+    }
+}
+
+/* Tablet (768px - 1199px): aynı anda ~3 kart, sabit/orantılı genişlik */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .kategori-vitrin-grid .category-highlight-kart {
+        flex: 0 0 calc((100% - 2 * 16px) / 3);
+        height: 420px;
+    }
+}
+
+/* Mobil (767px ve altı): aynı anda 1 kart */
+@media (max-width: 767px) {
+    .kategori-vitrin-grid {
+        gap: 12px;
+    }
+
+    .kategori-vitrin-grid .category-highlight-kart {
+        flex: 0 0 100%;
+        height: 380px;
+    }
+
+    .kategori-vitrin-ok {
+        width: 38px;
+        height: 38px;
+        font-size: 1rem;
     }
 }
 
@@ -3062,11 +3102,22 @@ body {
         opacity: 1;
         transform: scale(1);
     }
+}
 
+/* ==========================================
+   ÖNE ÇIKAN KATEGORİLER — ÜRÜN GRİD'İ CAROUSEL (1199px ve altı)
+   1200px+ üstteki Bootstrap .row/.col-md-3 4'lü sabit grid aynen kalır
+   (değişmez). 1199px ve altında sayfa (page) bazlı, nokta ile tıklanabilir
+   bir carousel'e dönüşür — her "sayfa" bir grup kart (2-3 kart) demektir,
+   kart başına değil sayfa başına bir nokta gösterilir.
+   ========================================== */
+
+@media (max-width: 1199px) {
     #kategoriUrunGrid {
         display: flex !important;
         flex-wrap: nowrap;
         overflow-x: auto;
+        scroll-behavior: smooth;
         scroll-snap-type: x mandatory;
         gap: 16px;
         padding-bottom: 4px;
@@ -3079,7 +3130,6 @@ body {
     }
 
     .kategori-urun-slayt {
-        flex: 0 0 62%;
         scroll-snap-align: start;
     }
 
@@ -3095,6 +3145,7 @@ body {
         height: 6px;
         border-radius: 50%;
         background: var(--renk-kenar);
+        cursor: pointer;
         transition: var(--gecis);
     }
 
@@ -3105,19 +3156,39 @@ body {
     }
 }
 
+/* Tablet (768px - 1199px): aynı anda ~3 kart, sabit/orantılı genişlik */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .kategori-urun-slayt {
+        flex: 0 0 calc((100% - 2 * 16px) / 3);
+        max-width: none;
+    }
+}
+
+/* Mobil (767px ve altı): aynı anda 2 kart */
+@media (max-width: 767px) {
+    #kategoriUrunGrid {
+        gap: 12px;
+    }
+
+    .kategori-urun-slayt {
+        flex: 0 0 calc((100% - 12px) / 2);
+        max-width: none;
+    }
+}
+
 /* ==========================================
-   3'LÜ TANITIM BANNER — MOBİL CAROUSEL
+   3'LÜ TANITIM BANNER — TABLET/MOBİL CAROUSEL (≤1023px, 2 kart görünür)
    ========================================== */
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
     .tanitim-banner-grid {
         display: flex !important;
         flex-wrap: nowrap;
         overflow-x: auto;
         scroll-snap-type: x mandatory;
-        gap: 0;
+        gap: 12px;
         margin: 0;
-        padding: 0;
+        padding: 0 0 4px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
     }
@@ -3127,33 +3198,31 @@ body {
     }
 
     .tanitim-banner {
-        flex: 0 0 calc(100% - 32px);
-        width: calc(100% - 32px);
-        scroll-snap-align: center;
-        height: 460px;
-        border-radius: 20px;
-        margin: 0 16px;
-    }
-
-    .tanitim-banner:first-child {
-        margin-left: 16px;
-    }
-
-    .tanitim-banner:last-child {
-        margin-right: 16px;
+        flex: 0 0 calc((100% - 12px) / 2);
+        width: auto;
+        max-width: none;
+        scroll-snap-align: start;
+        height: 320px;
+        border-radius: 16px;
+        margin: 0;
     }
 
     .tanitim-banner-icerik {
         text-align: left;
-        padding: 24px 24px 32px;
+        padding: 18px 16px 22px;
     }
 
     .tanitim-banner-icerik h3 {
-        font-size: 1.5rem;
+        font-size: 1.05rem;
+        margin-bottom: 10px;
+    }
+
+    .tanitim-banner-icerik .btn {
+        font-size: 0.78rem;
     }
 
     .tanitim-etiket {
-        font-size: 0.7rem;
+        font-size: 0.62rem;
     }
 
     .tanitim-banner-noktalar {
@@ -3168,6 +3237,7 @@ body {
         height: 6px;
         border-radius: 50%;
         background: var(--renk-kenar);
+        cursor: pointer;
         transition: var(--gecis);
     }
 
@@ -3175,6 +3245,16 @@ body {
         background: var(--renk-birincil);
         width: 18px;
         border-radius: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tanitim-banner {
+        height: 260px;
+    }
+
+    .tanitim-banner-icerik h3 {
+        font-size: 0.95rem;
     }
 }
 
@@ -3203,10 +3283,10 @@ body {
     flex-shrink: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
     .paket-ozet {
         position: sticky;
-        bottom: 74px; /* mobil-alt-menu yüksekliği (64px) + biraz boşluk */
+        bottom: 0;
         width: 100%;
         z-index: 1800;
         border-radius: 20px 20px 0 0;
@@ -3216,6 +3296,9 @@ body {
         padding: 18px 20px;
         max-height: 60vh;
         overflow-y: auto;
+        background: rgba(255, 255, 255, 0.82);
+        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
     }
 
     .paket-ozet-toggle {
@@ -3247,6 +3330,16 @@ body {
 
     /* Panel sabitlendiği için sayfanın en altına ekstra boşluk ekleyip
        diğer içeriğin panelin altında kalmamasını sağla */
+    #paketBolumu {
+        margin-bottom: 24px;
+    }
+}
+
+@media (max-width: 767px) {
+    .paket-ozet {
+        bottom: 74px; /* mobil-alt-menu yüksekliği (64px) + biraz boşluk */
+    }
+
     #paketBolumu {
         margin-bottom: 90px;
     }
@@ -3383,9 +3476,57 @@ body {
     display: none;
 }
 
-@media (max-width: 767px) {
+.yorum-carousel-ok {
+    display: flex;
+    position: absolute;
+    top: 42%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--renk-kenar);
+    border-radius: 50%;
+    background: var(--renk-beyaz);
+    color: #111;
+    font-size: 1.1rem;
+    cursor: pointer;
+    z-index: 5;
+    transition: var(--gecis);
+}
+
+.yorum-carousel-ok:hover {
+    background: var(--renk-birincil);
+    border-color: var(--renk-birincil);
+    color: #fff;
+}
+
+.yorum-carousel-ok:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.yorum-carousel-ok:disabled:hover {
+    background: var(--renk-beyaz);
+    border-color: var(--renk-kenar);
+    color: #111;
+}
+
+.yorum-carousel-ok-sol {
+    left: -22px;
+}
+
+.yorum-carousel-ok-sag {
+    right: -22px;
+}
+
+@media (max-width: 1023px) {
+    .yorum-carousel-ok {
+        display: none;
+    }
+
     .urun-yorum-kart {
-        flex: 0 0 85%;
+        flex: 0 0 calc((100% - 20px) / 2);
     }
 
     .yorum-noktalar {
@@ -3400,6 +3541,7 @@ body {
         height: 6px;
         border-radius: 50%;
         background: var(--renk-kenar);
+        cursor: pointer;
         transition: var(--gecis);
     }
 
@@ -3429,6 +3571,11 @@ body {
     border-radius: 50%;
     background: var(--renk-kenar);
     transition: var(--gecis);
+}
+
+.indirim-kart-noktalar .nokta,
+.ozellik-kart-noktalar .nokta {
+    cursor: pointer;
 }
 
 .indirim-kart-noktalar .nokta.aktif,

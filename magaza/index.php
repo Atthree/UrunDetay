@@ -60,19 +60,29 @@ $vitrinGorselleri = [
         <h2 class="category-highlights-baslik">Kategori Vitrinleri</h2>
         <p class="category-highlights-aciklama">Size özel seçilmiş kategorilerle alışverişin keyfini çıkarın.</p>
 
-        <div class="category-highlights-grid kategori-vitrin-grid">
-            <?php foreach ($vitrinKategorileri as $vk): ?>
-                <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart">
-                    <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel">
-                    <div class="category-highlight-overlay"></div>
-                    <div class="category-highlight-metin">
-                        <span class="category-highlight-ad">
-                            <?php echo htmlspecialchars($vitrinBaslik[$vk]); ?><sup><?php echo (int)($vitrinSayilari[$vk] ?? 0); ?></sup>
-                        </span>
-                        <span class="category-highlight-slogan">Mağazam—kaliteli ve güvenilir alışveriş.</span>
-                    </div>
-                </a>
-            <?php endforeach; ?>
+        <div class="kategori-vitrin-wrap">
+            <button type="button" class="kategori-vitrin-ok kategori-vitrin-ok-sol" id="kategoriVitrinOkSol" aria-label="Önceki kategori">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <div class="category-highlights-grid kategori-vitrin-grid" id="kategoriVitrinGrid">
+                <?php foreach ($vitrinKategorileri as $vk): ?>
+                    <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart">
+                        <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel">
+                        <div class="category-highlight-overlay"></div>
+                        <div class="category-highlight-metin">
+                            <span class="category-highlight-ad">
+                                <?php echo htmlspecialchars($vitrinBaslik[$vk]); ?><sup><?php echo (int)($vitrinSayilari[$vk] ?? 0); ?></sup>
+                            </span>
+                            <span class="category-highlight-slogan">Mağazam—kaliteli ve güvenilir alışveriş.</span>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+
+            <button type="button" class="kategori-vitrin-ok kategori-vitrin-ok-sag" id="kategoriVitrinOkSag" aria-label="Sonraki kategori">
+                <i class="bi bi-chevron-right"></i>
+            </button>
         </div>
 
         <div class="kategori-vitrin-noktalar" id="kategoriVitrinNoktalar"></div>
@@ -433,6 +443,9 @@ $urunYorumCarousel = $pdo->query("
         <p class="text-center text-muted mb-4">Müşterilerimiz ürünlerimizi seviyor, siz de deneyin.</p>
 
         <div class="yorum-carousel-alani">
+            <button type="button" class="yorum-carousel-ok yorum-carousel-ok-sol" id="yorumCarouselOkSol" aria-label="Önceki yorumlar">
+                <i class="bi bi-chevron-left"></i>
+            </button>
             <div class="yorum-carousel" id="yorumCarousel">
                 <?php foreach ($urunYorumCarousel as $yorum): ?>
                     <div class="urun-yorum-kart">
@@ -453,6 +466,9 @@ $urunYorumCarousel = $pdo->query("
                     </div>
                 <?php endforeach; ?>
             </div>
+            <button type="button" class="yorum-carousel-ok yorum-carousel-ok-sag" id="yorumCarouselOkSag" aria-label="Sonraki yorumlar">
+                <i class="bi bi-chevron-right"></i>
+            </button>
             <div class="yorum-noktalar" id="yorumNoktalar"></div>
         </div>
     </div>
