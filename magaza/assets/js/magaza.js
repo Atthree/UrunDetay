@@ -303,10 +303,10 @@ function sepetSidebarGuncelle() {
         const dropdown = bootstrap.Dropdown.getOrCreateInstance(toggleEl);
 
         item.addEventListener('mouseenter', () => {
-            if (window.innerWidth >= 768) dropdown.show();
+            if (window.innerWidth >= 1025) dropdown.show();
         });
         item.addEventListener('mouseleave', () => {
-            if (window.innerWidth >= 768) dropdown.hide();
+            if (window.innerWidth >= 1025) dropdown.hide();
         });
     });
 
@@ -566,7 +566,7 @@ function sepetSidebarGuncelle() {
         const stokYokHtml = urun.miktar === 0 ? '<span class="urun-stok-yok">Stokta Yok</span>' : '';
         const yildizHtml = yildizHtmlOlustur(urun.yildiz_ortalama);
         return `
-            <div class="col-6 col-md-3 kategori-urun-slayt">
+            <div class="col-6 col-md-3 kategori-urun-slayt swiper-slide">
                 <a href="urun.php?id=${urun.id}" class="urun-kart">
                     <button class="favori-btn" data-id="${urun.id}"
                             onclick="event.preventDefault();event.stopPropagation();toggleFavori(${urun.id}, this);"
@@ -592,6 +592,8 @@ function sepetSidebarGuncelle() {
         `;
     }
 
+    let kategoriUrunSwiperOrnek = null;
+
     function kategoriPaneliDoldur(kategori, urunler) {
         const grid = document.getElementById('kategoriUrunGrid');
         if (!grid) return;
@@ -600,17 +602,20 @@ function sepetSidebarGuncelle() {
             ? '<p class="text-muted">Bu kategoride henüz ürün yok.</p>'
             : urunler.map(kategoriUrunKartiOlustur).join('');
 
-        // Kategori değişince carousel'i başa sar (bkz. istek: sekme değişince
-        // sayfa/nokta durumu sıfırlanmalı, önceki kategorinin scroll konumu kalmamalı)
-        grid.scrollLeft = 0;
+        // Kategori değişince carousel'i başa sar (sekme değişince önceki
+        // kategorinin kaydırma konumu kalmamalı). Swiper aktifse (≤1199px)
+        // içerik innerHTML ile değiştiği için slide referansları update()
+        // ile yeniden okunmalı; masaüstünde Swiper yoksa bu adım atlanır.
+        if (kategoriUrunSwiperOrnek) {
+            kategoriUrunSwiperOrnek.update();
+            kategoriUrunSwiperOrnek.slideTo(0, 0);
+        }
 
         const gorBtn = document.getElementById('kategoriTumunuGorBtn');
         if (gorBtn) {
             gorBtn.href = '/UrunDetay/magaza/index.php?kategori=' + encodeURIComponent(kategori) + '#urunler';
             gorBtn.textContent = 'Tüm ' + kategori.charAt(0).toUpperCase() + kategori.slice(1) + ' Ürünlerini Gör';
         }
-
-        kategoriUrunNoktalariGuncelle();
     }
 
     document.querySelectorAll('.kategori-tab').forEach(tab => {
@@ -652,376 +657,300 @@ function sepetSidebarGuncelle() {
     });
 
     // ==========================================
-    // YATAY CAROUSEL'LER İÇİN ELLE DOKUNMA (TOUCH) SÜRÜKLEME
-    // Bu grid'lerde overflow-x:auto + scroll-snap-type native touch-scroll
-    // sağlıyor GİBİ görünse de, bazı tarayıcı/emülatör kombinasyonlarında
-    // (özellikle Chrome DevTools'un fare tabanlı dokunmatik simülasyonunda)
-    // native yatay pan hiç tetiklenmeyebiliyor. Bu yüzden yatay yönü JS ile
-    // elle üstleniyoruz; dikey yön hiç ellenmiyor (preventDefault çağrılmıyor)
-    // ki sayfa scroll'u bu değişiklikten etkilenmesin. touch-action:pan-y
-    // (CSS) ile birlikte çalışır: dikeyi tarayıcı native yönetir, yatayı biz.
-    // ==========================================
-
-    function dokunmaylaYatayKaydir(grid) {
-        if (!grid) return;
-
-        let basX = 0;
-        let basY = 0;
-        let baslangicScrollLeft = 0;
-        let yatayKaydirma = false;
-        let yonKararVerildi = false;
-
-        grid.addEventListener('touchstart', function (e) {
-            if (e.touches.length !== 1) return;
-            basX = e.touches[0].clientX;
-            basY = e.touches[0].clientY;
-            baslangicScrollLeft = grid.scrollLeft;
-            yatayKaydirma = false;
-            yonKararVerildi = false;
-        }, { passive: true });
-
-        grid.addEventListener('touchmove', function (e) {
-            if (e.touches.length !== 1) return;
-            const dx = e.touches[0].clientX - basX;
-            const dy = e.touches[0].clientY - basY;
-
-            if (!yonKararVerildi) {
-                // Kararsız bölge: kullanıcı henüz net bir yöne hareket
-                // etmedi, hiçbir şey yapma (ne kaydır ne preventDefault).
-                if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-                yatayKaydirma = Math.abs(dx) > Math.abs(dy);
-                yonKararVerildi = true;
-            }
-
-            if (yatayKaydirma) {
-                // Yatay hareket baskın: sayfanın dikey scroll'a kaymasını
-                // engelle, carousel'i parmakla birlikte kaydır.
-                e.preventDefault();
-                grid.scrollLeft = baslangicScrollLeft - dx;
-            }
-            // Dikey hareket baskınsa dokunma — preventDefault çağrılmadığı
-            // için tarayıcı sayfayı normal şekilde dikey kaydırır.
-        }, { passive: false });
-    }
-
-    // ==========================================
-    // KATEGORİ VİTRİNLERİ — OK BUTONLARI + NOKTA (DOT) SAYFALAMA
-    // ==========================================
-
-    const kategoriVitrinGrid = document.getElementById('kategoriVitrinGrid');
-    const kategoriVitrinNoktalar = document.getElementById('kategoriVitrinNoktalar');
-    const kategoriVitrinOkSol = document.getElementById('kategoriVitrinOkSol');
-    const kategoriVitrinOkSag = document.getElementById('kategoriVitrinOkSag');
-
-    if (kategoriVitrinGrid) {
-        dokunmaylaYatayKaydir(kategoriVitrinGrid);
-        const kartlar = kategoriVitrinGrid.children;
-
-        function kategoriVitrinBosluk() {
-            const stil = getComputedStyle(kategoriVitrinGrid);
-            return parseFloat(stil.columnGap || stil.gap) || 0;
-        }
-
-        function kategoriVitrinKaydir(yon) {
-            if (kartlar.length === 0) return;
-            const kartGenisligi = kartlar[0].offsetWidth + kategoriVitrinBosluk();
-            kategoriVitrinGrid.scrollBy({ left: yon * kartGenisligi, behavior: 'smooth' });
-        }
-
-        function kategoriVitrinOkDurumGuncelle() {
-            const maxScroll = kategoriVitrinGrid.scrollWidth - kategoriVitrinGrid.clientWidth;
-            if (kategoriVitrinOkSol) kategoriVitrinOkSol.disabled = kategoriVitrinGrid.scrollLeft <= 4;
-            if (kategoriVitrinOkSag) kategoriVitrinOkSag.disabled = kategoriVitrinGrid.scrollLeft >= maxScroll - 4;
-        }
-
-        if (kategoriVitrinOkSol) kategoriVitrinOkSol.addEventListener('click', () => kategoriVitrinKaydir(-1));
-        if (kategoriVitrinOkSag) kategoriVitrinOkSag.addEventListener('click', () => kategoriVitrinKaydir(1));
-
-        kategoriVitrinOkDurumGuncelle();
-        window.addEventListener('resize', kategoriVitrinOkDurumGuncelle);
-
-        if (kategoriVitrinNoktalar) {
-            for (let i = 0; i < kartlar.length; i++) {
-                const nokta = document.createElement('span');
-                nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-                kategoriVitrinNoktalar.appendChild(nokta);
-            }
-
-            const noktaElemanlari = kategoriVitrinNoktalar.querySelectorAll('.nokta');
-
-            kategoriVitrinGrid.addEventListener('scroll', function () {
-                const kartGenisligi = kartlar[0].offsetWidth + kategoriVitrinBosluk();
-                const maxIndex = kartlar.length - 1;
-                const aktifIndex = Math.min(maxIndex, Math.max(0, Math.round(kategoriVitrinGrid.scrollLeft / kartGenisligi)));
-
-                noktaElemanlari.forEach((n, i) => {
-                    n.classList.toggle('aktif', i === aktifIndex);
-                });
-            });
-        }
-
-        kategoriVitrinGrid.addEventListener('scroll', kategoriVitrinOkDurumGuncelle);
-    }
-
-    // ==========================================
-    // ÖNE ÇIKAN KATEGORİLER — SAYFA (PAGE) BAZLI NOKTA (DOT) SAYFALAMA
-    // Kart başına değil, aynı anda görünen kart GRUBU (sayfa) başına bir
-    // nokta gösterilir; noktalar tıklanabilir, kategori değişince veya
-    // ekran boyutu değişince (sayfa başına kart sayısı değiştiğinden)
-    // yeniden hesaplanır.
-    // ==========================================
-
-    function kategoriUrunNoktalariGuncelle() {
-        const grid = document.getElementById('kategoriUrunGrid');
-        const noktaAlani = document.getElementById('kategoriUrunNoktalar');
-        if (!grid || !noktaAlani || window.innerWidth > 1199) {
-            if (noktaAlani) noktaAlani.innerHTML = '';
-            grid.onscroll = null;
-            return;
-        }
-
-        const kartlar = grid.children;
-        noktaAlani.innerHTML = '';
-        grid.onscroll = null;
-
-        if (kartlar.length === 0) return;
-
-        const stil = getComputedStyle(grid);
-        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
-        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
-        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
-        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
-        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
-
-        for (let i = 0; i < toplamSayfa; i++) {
-            const nokta = document.createElement('span');
-            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-            nokta.addEventListener('click', function () {
-                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
-            });
-            noktaAlani.appendChild(nokta);
-        }
-
-        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
-
-        grid.onscroll = function () {
-            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
-        };
-    }
-
-    window.addEventListener('resize', kategoriUrunNoktalariGuncelle);
-
-    kategoriUrunNoktalariGuncelle();
-    dokunmaylaYatayKaydir(document.getElementById('kategoriUrunGrid'));
-
-    // ==========================================
-    // 3'LÜ TANITIM BANNER — MOBİL NOKTA (DOT) SAYFALAMA
-    // ==========================================
-
-    function tanitimBannerNoktalariGuncelle() {
-        const grid = document.querySelector('.tanitim-banner-grid');
-        const noktaAlani = document.getElementById('tanitimBannerNoktalar');
-        if (!grid || !noktaAlani || window.innerWidth > 1023) {
-            if (noktaAlani) noktaAlani.innerHTML = '';
-            if (grid) grid.onscroll = null;
-            return;
-        }
-
-        const bannerlar = grid.children;
-        noktaAlani.innerHTML = '';
-        grid.onscroll = null;
-
-        if (bannerlar.length === 0) return;
-
-        const stil = getComputedStyle(grid);
-        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
-        const bannerGenisligi = bannerlar[0].offsetWidth + bosluk;
-        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / bannerGenisligi));
-        const toplamSayfa = Math.max(1, Math.ceil(bannerlar.length / sayfaBasinaKart));
-        const sayfaGenisligi = sayfaBasinaKart * bannerGenisligi;
-
-        for (let i = 0; i < toplamSayfa; i++) {
-            const nokta = document.createElement('span');
-            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-            nokta.addEventListener('click', function () {
-                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
-            });
-            noktaAlani.appendChild(nokta);
-        }
-
-        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
-
-        grid.onscroll = function () {
-            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
-        };
-    }
-
-    tanitimBannerNoktalariGuncelle();
-    window.addEventListener('resize', tanitimBannerNoktalariGuncelle);
-
-    // ==========================================
-    // MÜŞTERİ YORUMLARI — NOKTA (DOT) SAYFALAMA
-    // ==========================================
-
-    function yorumNoktalariGuncelle() {
-        const grid = document.getElementById('yorumCarousel');
-        const noktaAlani = document.getElementById('yorumNoktalar');
-        if (!grid || !noktaAlani || window.innerWidth > 1023) {
-            if (noktaAlani) noktaAlani.innerHTML = '';
-            if (grid) grid.onscroll = null;
-            return;
-        }
-
-        const kartlar = grid.children;
-        noktaAlani.innerHTML = '';
-        grid.onscroll = null;
-
-        if (kartlar.length === 0) return;
-
-        const stil = getComputedStyle(grid);
-        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
-        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
-        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
-        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
-        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
-
-        for (let i = 0; i < toplamSayfa; i++) {
-            const nokta = document.createElement('span');
-            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-            nokta.addEventListener('click', function () {
-                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
-            });
-            noktaAlani.appendChild(nokta);
-        }
-
-        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
-
-        grid.onscroll = function () {
-            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
-        };
-    }
-
-    yorumNoktalariGuncelle();
-    window.addEventListener('resize', yorumNoktalariGuncelle);
-
-    // ==========================================
-    // MÜŞTERİ YORUMLARI — MASAÜSTÜ OK BUTONLARI (SAYFA BAZLI KAYDIRMA)
+    // ÖNE ÇIKAN KATEGORİLER — TAB BARI SWIPER (SADECE ≤1024px)
+    // Masaüstünde sekmeler birden fazla satıra sarılıp (flex-wrap:wrap) hepsi
+    // aynı anda görünüyor — bu, Swiper'ın "tek satır + kaydırma" modeliyle
+    // taban tabana zıt (Swiper'da slide'lar hep tek satırda kalır). Bu yüzden
+    // Swiper burada breakpoints ile değil, doğrudan koşullu init/destroy ile
+    // SADECE tablet ve mobilde (≤1024px) çalıştırılıyor; genişlik 1024'ü
+    // geçince yok ediliyor ve CSS'in kendi flex-wrap:wrap düzeni geri gelir.
+    // Sekmeye tıklayınca kategori filtreleme (yukarıdaki click listener'lar)
+    // Swiper'dan bağımsız, DOM'daki .kategori-tab elemanları üzerinde zaten
+    // çalışıyor — Swiper sadece kaydırma davranışını üstleniyor.
     // ==========================================
 
     (function () {
-        const grid = document.getElementById('yorumCarousel');
-        const okSol = document.getElementById('yorumCarouselOkSol');
-        const okSag = document.getElementById('yorumCarouselOkSag');
-        if (!grid || !okSol || !okSag) return;
+        const tabSwiperEl = document.querySelector('.kategori-tab-swiper');
+        if (!tabSwiperEl || !window.Swiper) return;
 
-        function durumGuncelle() {
-            const maxScroll = grid.scrollWidth - grid.clientWidth;
-            okSol.disabled = grid.scrollLeft <= 4;
-            okSag.disabled = grid.scrollLeft >= maxScroll - 4;
+        let tabSwiperOrnek = null;
+
+        function tabSwiperDurumGuncelle() {
+            const tabletMi = window.innerWidth <= 1024;
+            if (tabletMi && !tabSwiperOrnek) {
+                tabSwiperOrnek = new Swiper(tabSwiperEl, {
+                    slidesPerView: 'auto',
+                    spaceBetween: 8,
+                    freeMode: true,
+                    watchOverflow: true,
+                    breakpoints: {
+                        768: {
+                            slidesPerView: 4,
+                            spaceBetween: 4,
+                        },
+                    },
+                });
+            } else if (!tabletMi && tabSwiperOrnek) {
+                tabSwiperOrnek.destroy(true, true);
+                tabSwiperOrnek = null;
+            }
         }
 
-        okSol.addEventListener('click', () => grid.scrollBy({ left: -grid.clientWidth, behavior: 'smooth' }));
-        okSag.addEventListener('click', () => grid.scrollBy({ left: grid.clientWidth, behavior: 'smooth' }));
-
-        grid.addEventListener('scroll', durumGuncelle);
-        window.addEventListener('resize', durumGuncelle);
-        durumGuncelle();
+        tabSwiperDurumGuncelle();
+        window.addEventListener('resize', tabSwiperDurumGuncelle);
     })();
 
     // ==========================================
-    // İNDİRİM KARTLARI — MOBİL NOKTA (DOT) SAYFALAMA
+    // KATEGORİ VİTRİNLERİ — SWIPER
+    // Eski custom overflow-x/touchstart-move-end mantığı kaldırıldı, yerine
+    // Swiper.js geçirildi. Nokta/ok butonlarının GÖRSEL tasarımı korunuyor
+    // (bulletClass/bulletActiveClass ile mevcut .nokta/.aktif class'ları,
+    // nextEl/prevEl ile mevcut .kategori-vitrin-ok butonları kullanılıyor) —
+    // sadece kaydırma/geçiş DAVRANIŞI Swiper'a devredildi.
+    // Masaüstünde (≥1200px) simulateTouch:false + allowTouchMove:false ile
+    // mouse sürüklemesi TAMAMEN kapalı; sadece dot tıklaması (native click,
+    // Swiper'ın touch/drag mantığından bağımsız) çalışır.
     // ==========================================
 
-    function indirimKartNoktalariGuncelle() {
-        const grid = document.querySelector('.promo-banners-grid');
-        const noktaAlani = document.getElementById('indirimKartNoktalar');
-        if (!grid || !noktaAlani || window.innerWidth > 1023) {
-            if (noktaAlani) noktaAlani.innerHTML = '';
-            if (grid) grid.onscroll = null;
-            return;
-        }
-
-        const kartlar = grid.children;
-        noktaAlani.innerHTML = '';
-        grid.onscroll = null;
-
-        if (kartlar.length === 0) return;
-
-        const stil = getComputedStyle(grid);
-        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
-        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
-        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
-        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
-        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
-
-        for (let i = 0; i < toplamSayfa; i++) {
-            const nokta = document.createElement('span');
-            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-            nokta.addEventListener('click', function () {
-                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
-            });
-            noktaAlani.appendChild(nokta);
-        }
-
-        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
-
-        grid.onscroll = function () {
-            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
-        };
+    const kategoriVitrinSwiperEl = document.querySelector('.kategori-vitrin-swiper');
+    if (kategoriVitrinSwiperEl && window.Swiper) {
+        new Swiper(kategoriVitrinSwiperEl, {
+            slidesPerView: 1.4,
+            spaceBetween: 12,
+            simulateTouch: true,
+            allowTouchMove: true,
+            watchOverflow: true,
+            navigation: {
+                nextEl: '#kategoriVitrinOkSag',
+                prevEl: '#kategoriVitrinOkSol',
+                enabled: false,
+                disabledClass: 'swiper-button-disabled',
+            },
+            pagination: {
+                el: '#kategoriVitrinNoktalar',
+                clickable: true,
+                bulletClass: 'nokta',
+                bulletActiveClass: 'aktif',
+            },
+            breakpoints: {
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 16,
+                    navigation: { enabled: true },
+                },
+                1200: {
+                    slidesPerView: 4,
+                    spaceBetween: 20,
+                    simulateTouch: false,
+                    allowTouchMove: false,
+                    navigation: { enabled: false },
+                    pagination: { enabled: false },
+                },
+            },
+        });
     }
 
-    indirimKartNoktalariGuncelle();
-    window.addEventListener('resize', indirimKartNoktalariGuncelle);
-
     // ==========================================
-    // ÖZELLİK KARTLARI (NEDEN BİZİ SEÇMELİSİNİZ) — MOBİL NOKTA (DOT) SAYFALAMA
+    // ÖNE ÇIKAN KATEGORİLER — ÜRÜN GRİD'İ SWIPER (SADECE ≤1199px)
+    // 1200px+ üstte Bootstrap'ın .row/.col-md-3 4'lü sabit grid'i aynen kalır
+    // (Swiper masaüstünde yok edilir) — tab barındaki koşullu init/destroy
+    // deseninin aynısı. İçerik sekme değişince AJAX ile innerHTML üzerinden
+    // değiştiği için (bkz. kategoriPaneliDoldur), Swiper örneği modül-scope
+    // kategoriUrunSwiperOrnek değişkeninde tutulup orada update()/slideTo()
+    // ile güncelleniyor.
     // ==========================================
 
-    function ozellikKartNoktalariGuncelle() {
-        const grid = document.querySelector('.why-choose-us-grid');
-        const noktaAlani = document.getElementById('ozellikKartNoktalar');
-        if (!grid || !noktaAlani || window.innerWidth > 1023) {
-            if (noktaAlani) noktaAlani.innerHTML = '';
-            if (grid) grid.onscroll = null;
-            return;
+    const kategoriUrunSwiperEl = document.querySelector('.kategori-urun-swiper');
+    if (kategoriUrunSwiperEl && window.Swiper) {
+        function kategoriUrunSwiperDurumGuncelle() {
+            const tabletMi = window.innerWidth <= 1199;
+            if (tabletMi && !kategoriUrunSwiperOrnek) {
+                kategoriUrunSwiperOrnek = new Swiper(kategoriUrunSwiperEl, {
+                    slidesPerView: 1.5,
+                    spaceBetween: 12,
+                    slidesPerGroup: 1,
+                    watchOverflow: true,
+                    pagination: {
+                        el: '#kategoriUrunNoktalar',
+                        clickable: true,
+                        bulletClass: 'nokta',
+                        bulletActiveClass: 'aktif',
+                    },
+                    breakpoints: {
+                        768: {
+                            slidesPerView: 3,
+                            spaceBetween: 16,
+                            slidesPerGroup: 3,
+                        },
+                    },
+                });
+            } else if (!tabletMi && kategoriUrunSwiperOrnek) {
+                kategoriUrunSwiperOrnek.destroy(true, true);
+                kategoriUrunSwiperOrnek = null;
+            }
         }
 
-        const kartlar = grid.children;
-        noktaAlani.innerHTML = '';
-        grid.onscroll = null;
-
-        if (kartlar.length === 0) return;
-
-        const stil = getComputedStyle(grid);
-        const bosluk = parseFloat(stil.columnGap || stil.gap) || 0;
-        const kartGenisligi = kartlar[0].offsetWidth + bosluk;
-        const sayfaBasinaKart = Math.max(1, Math.round(grid.clientWidth / kartGenisligi));
-        const toplamSayfa = Math.max(1, Math.ceil(kartlar.length / sayfaBasinaKart));
-        const sayfaGenisligi = sayfaBasinaKart * kartGenisligi;
-
-        for (let i = 0; i < toplamSayfa; i++) {
-            const nokta = document.createElement('span');
-            nokta.className = 'nokta' + (i === 0 ? ' aktif' : '');
-            nokta.addEventListener('click', function () {
-                grid.scrollTo({ left: i * sayfaGenisligi, behavior: 'smooth' });
-            });
-            noktaAlani.appendChild(nokta);
-        }
-
-        const noktaElemanlari = noktaAlani.querySelectorAll('.nokta');
-
-        grid.onscroll = function () {
-            const aktifSayfa = Math.min(toplamSayfa - 1, Math.max(0, Math.round(grid.scrollLeft / sayfaGenisligi)));
-            noktaElemanlari.forEach((n, i) => n.classList.toggle('aktif', i === aktifSayfa));
-        };
+        kategoriUrunSwiperDurumGuncelle();
+        window.addEventListener('resize', kategoriUrunSwiperDurumGuncelle);
     }
 
-    ozellikKartNoktalariGuncelle();
-    window.addEventListener('resize', ozellikKartNoktalariGuncelle);
+    // ==========================================
+    // 3'LÜ TANITIM BANNER — SWIPER (SADECE ≤1024px)
+    // 1025px+ üstte 3'lü sabit CSS grid aynen kalır (Swiper destroy edilir).
+    // ==========================================
+
+    (function () {
+        const swiperEl = document.querySelector('.tanitim-banner-swiper');
+        if (!swiperEl || !window.Swiper) return;
+
+        let ornek = null;
+
+        function durumGuncelle() {
+            const aktifMi = window.innerWidth <= 1024;
+            if (aktifMi && !ornek) {
+                ornek = new Swiper(swiperEl, {
+                    slidesPerView: 1,
+                    spaceBetween: 12,
+                    watchOverflow: true,
+                    pagination: {
+                        el: '#tanitimBannerNoktalar',
+                        clickable: true,
+                        bulletClass: 'nokta',
+                        bulletActiveClass: 'aktif',
+                    },
+                    breakpoints: {
+                        768: {
+                            slidesPerView: 2,
+                            spaceBetween: 12,
+                        },
+                    },
+                });
+            } else if (!aktifMi && ornek) {
+                ornek.destroy(true, true);
+                ornek = null;
+            }
+        }
+
+        durumGuncelle();
+        window.addEventListener('resize', durumGuncelle);
+    })();
+
+    // ==========================================
+    // MÜŞTERİ YORUMLARI — SWIPER (HER GENİŞLİKTE AKTİF)
+    // Diğer bölümlerden farklı olarak masaüstünde de carousel olarak kalır
+    // (masaüstü CSS grid'e dönmüyor). slidesPerView:'auto' ile her kartın
+    // mevcut CSS genişliği (masaüstü sabit 340px, tablet/mobil % bazlı)
+    // olduğu gibi korunuyor. Masaüstünde (≥1025px) simulateTouch:false +
+    // allowTouchMove:false ile mouse sürüklemesi kapalı, sadece ok butonları
+    // (navigation) çalışır; ≤1024px'te dokunmatik + nokta (pagination) aktif.
+    // ==========================================
+
+    const yorumSwiperEl = document.querySelector('.yorum-swiper');
+    if (yorumSwiperEl && window.Swiper) {
+        new Swiper(yorumSwiperEl, {
+            slidesPerView: 'auto',
+            spaceBetween: 20,
+            simulateTouch: true,
+            allowTouchMove: true,
+            watchOverflow: true,
+            navigation: {
+                nextEl: '#yorumCarouselOkSag',
+                prevEl: '#yorumCarouselOkSol',
+                disabledClass: 'swiper-button-disabled',
+            },
+            pagination: {
+                el: '#yorumNoktalar',
+                clickable: true,
+                bulletClass: 'nokta',
+                bulletActiveClass: 'aktif',
+            },
+            breakpoints: {
+                1025: {
+                    simulateTouch: false,
+                    allowTouchMove: false,
+                    pagination: { enabled: false },
+                },
+            },
+        });
+    }
+
+    // ==========================================
+    // İNDİRİM KARTLARI — SWIPER (SADECE ≤1024px)
+    // 1025px+ üstte 2'li sabit CSS grid aynen kalır (Swiper destroy edilir).
+    // Sadece 2 banner olduğu için tek breakpoint yeterli (her zaman 1 banner
+    // görünür, dot ile diğerine geçilir).
+    // ==========================================
+
+    (function () {
+        const swiperEl = document.querySelector('.promo-banners-swiper');
+        if (!swiperEl || !window.Swiper) return;
+
+        let ornek = null;
+
+        function durumGuncelle() {
+            const aktifMi = window.innerWidth <= 1024;
+            if (aktifMi && !ornek) {
+                ornek = new Swiper(swiperEl, {
+                    slidesPerView: 1,
+                    spaceBetween: 16,
+                    watchOverflow: true,
+                    pagination: {
+                        el: '#indirimKartNoktalar',
+                        clickable: true,
+                        bulletClass: 'nokta',
+                        bulletActiveClass: 'aktif',
+                    },
+                });
+            } else if (!aktifMi && ornek) {
+                ornek.destroy(true, true);
+                ornek = null;
+            }
+        }
+
+        durumGuncelle();
+        window.addEventListener('resize', durumGuncelle);
+    })();
+
+    // ==========================================
+    // ÖZELLİK KARTLARI (NEDEN BİZİ SEÇMELİSİNİZ) — SWIPER (SADECE ≤1024px)
+    // 1025px+ üstte 4'lü sabit CSS grid aynen kalır (Swiper destroy edilir).
+    // ==========================================
+
+    (function () {
+        const swiperEl = document.querySelector('.why-choose-us-swiper');
+        if (!swiperEl || !window.Swiper) return;
+
+        let ornek = null;
+
+        function durumGuncelle() {
+            const aktifMi = window.innerWidth <= 1024;
+            if (aktifMi && !ornek) {
+                ornek = new Swiper(swiperEl, {
+                    slidesPerView: 1,
+                    spaceBetween: 16,
+                    watchOverflow: true,
+                    pagination: {
+                        el: '#ozellikKartNoktalar',
+                        clickable: true,
+                        bulletClass: 'nokta',
+                        bulletActiveClass: 'aktif',
+                    },
+                    breakpoints: {
+                        768: {
+                            slidesPerView: 2,
+                            spaceBetween: 16,
+                        },
+                    },
+                });
+            } else if (!aktifMi && ornek) {
+                ornek.destroy(true, true);
+                ornek = null;
+            }
+        }
+
+        durumGuncelle();
+        window.addEventListener('resize', durumGuncelle);
+    })();
 
     // ==========================================
     // FOOTER ACCORDION (sadece mobilde anlamlı, masaüstünde CSS zaten

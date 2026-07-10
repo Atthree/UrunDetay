@@ -20,7 +20,7 @@
     --gecis: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --yuvarlatma: 12px;
     --yuvarlatma-kucuk: 8px;
-    --disaridan-bosluk: 24px;
+    --disaridan-bosluk: 12px;
 }
 
 * {
@@ -155,9 +155,9 @@ select,
     transition: transform 0.3s ease;
 }
 
-/* ≥768px: offcanvas-md devreye girmeden önce ana-nav'ın kendisi normal akışa döner;
+/* ≥1025px: gerçek masaüstünde offcanvas drawer kapanır, ana-nav normal akışa döner;
    asıl yatay hizalamayı offcanvas-body üstlenir. */
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
     .ana-nav .offcanvas-body {
         display: flex;
         align-items: center;
@@ -1658,13 +1658,12 @@ select,
    ============================================ */
 
 @media (max-width: 991px) {
-    .mega-menu {
-        min-width: 400px;
-    }
-
-    .mega-menu-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+    /* .mega-menu / .mega-menu-grid mobil-tablet kuralları buradan kaldırıldı —
+       artık tek, konsolide edilmiş @media (max-width: 1024px) bloğunda
+       (.ana-nav .mega-menu / .ana-nav .mega-menu-grid, yukarıda ~satır 535)
+       yönetiliyor. Burada bırakılmaları 768-991 aralığında düşük özgüllükle
+       (bare .mega-menu-grid, 1 class) zaten örtük şekilde eziliyordu ama
+       kod karmaşası ve yanlış izlenime yol açtığı için tamamen kaldırıldı. */
 
     /* <992px: .offcanvas-lg devreye girer, kayan panel içi görünüm */
     .filtre-sidebar {
@@ -1694,32 +1693,14 @@ select,
         font-size: 1.9rem;
     }
 
-    /* <768px: #anaNav Bootstrap .offcanvas-md ile tam genişlik kayan panel olur */
-    #anaNav.offcanvas-md {
-        width: 100%;
-    }
-
-    .ana-nav .nav-item > a {
-        padding: 14px 0;
-        font-size: 1.05rem;
-        border-bottom: 1px solid var(--renk-kenar);
-    }
-
-    .mega-menu {
-        position: static;
-        transform: none;
-        box-shadow: none;
-        padding: 10px 0 10px 16px;
-        min-width: 100%;
-    }
-
-    .mega-menu::before {
-        display: none;
-    }
-
-    .mega-menu-grid {
-        grid-template-columns: 1fr;
-    }
+    /* #anaNav genişliği, .ana-nav .nav-item > a, .mega-menu, .mega-menu::before
+       ve .mega-menu-grid mobil kuralları buradan kaldırıldı — hepsi artık tek,
+       konsolide @media (max-width: 1024px) bloğunda (~satır 435) ve ayrı
+       @media (max-width: 767px) { .ana-nav { width: 100% !important } }
+       bloğunda (~satır 552) yönetiliyor. Burada bırakılan .ana-nav .nav-item > a
+       kuralı, konsolide bloktakiyle AYNI özgüllüğe sahip olduğu için (2 class)
+       ve dosyada ondan SONRA geldiği için gerçekten onu eziyordu — sessiz bir
+       tutarsızlık kaynağıydı, bu yüzden kaldırıldı. */
 
     .urun-ozellikler {
         grid-template-columns: 1fr;
@@ -1895,11 +1876,17 @@ select,
    ÖNE ÇIKAN KATEGORİLER — SEKME GEÇİŞİ
    ========================================== */
 
+/* .kategori-tab-bar artık aynı zamanda Swiper'ın .swiper-wrapper'ı (≤1024px)
+   — spacing/wrap kuralları aşağıda breakpoint'e göre ayrılıyor: ≥1025px'te
+   Swiper hiç initialize edilmiyor (bkz. magaza.js), CSS'in kendi
+   flex-wrap:wrap düzeni geçerli oluyor; ≤1024px'te Swiper'ın kendi
+   spaceBetween'i araya boşluk koyuyor, burada margin/gap EKLENMİYOR (aksi
+   halde çift boşluk oluşur). */
 .kategori-tab-bar {
     display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 4px;
+}
+
+.kategori-tab-swiper {
     margin: 20px 0 36px;
 }
 
@@ -1914,7 +1901,7 @@ select,
     position: relative;
     font-family: inherit;
     transition: var(--gecis);
-    margin: 0 14px;
+    white-space: nowrap;
 }
 
 .kategori-tab:hover {
@@ -1933,6 +1920,31 @@ select,
     bottom: -2px;
     height: 2px;
     background: var(--renk-vurgu);
+}
+
+/* Masaüstü (≥1025px): Swiper devre dışı, sekmeler birden fazla satıra
+   sarılıp ortalanıyor (orijinal, Swiper-öncesi davranış). */
+@media (min-width: 1025px) {
+    .kategori-tab-bar {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .kategori-tab {
+        margin: 0 14px;
+    }
+}
+
+/* ≤1024px: Swiper devrede (tablet: slidesPerView:4, mobil: auto genişlik) */
+@media (max-width: 1024px) {
+    .kategori-tab-swiper {
+        margin: 16px 0 24px;
+    }
+
+    .kategori-tab {
+        padding: 8px 12px;
+    }
 }
 .kategori-panel-alani {
     position: relative;
@@ -1983,27 +1995,8 @@ select,
         height: 200px;
     }
 
-    .kategori-tab-bar {
-        flex-wrap: nowrap;
-        justify-content: flex-start;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        gap: 0;
-        margin: 16px 0 24px;
-        padding: 0 4px;
-    }
-
-    .kategori-tab-bar::-webkit-scrollbar {
-        display: none;
-    }
-
     .kategori-tab {
-        flex: 0 0 auto;
-        white-space: nowrap;
-        padding: 8px 4px;
         font-size: 0.88rem;
-        margin: 0 10px;
     }
 
     .kategori-panel-alani .row {
@@ -2547,38 +2540,6 @@ select,
         margin-bottom: 40px;
     }
 
-    .why-choose-us-grid {
-        display: flex !important;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 16px;
-        padding-bottom: 4px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .why-choose-us-grid::-webkit-scrollbar {
-        display: none;
-    }
-
-    .why-choose-us-oge {
-        scroll-snap-align: start;
-    }
-}
-
-/* Tablet (768px - 1024px): aynı anda 2 kart */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .why-choose-us-oge {
-        flex: 0 0 calc((100% - 16px) / 2);
-    }
-}
-
-/* Mobil (767px ve altı): aynı anda 1 kart, tam genişlik */
-@media (max-width: 767px) {
-    .why-choose-us-oge {
-        flex: 0 0 100%;
-    }
 }
 
 /* Promo Banners Section */
@@ -2676,25 +2637,7 @@ select,
         padding: 24px 0 0;
     }
 
-    .promo-banners-grid {
-        display: flex !important;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 16px;
-        padding-bottom: 4px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .promo-banners-grid::-webkit-scrollbar {
-        display: none;
-    }
-
     .promo-banner {
-        flex: 0 0 100%;
-        width: 100%;
-        scroll-snap-align: start;
         padding: 28px;
         min-height: 220px;
     }
@@ -2726,12 +2669,6 @@ select,
     color: var(--renk-metin-acik);
     font-size: 0.95rem;
     margin-bottom: 36px;
-}
-
-.category-highlights-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
 }
 
 .category-highlight-kart {
@@ -2822,9 +2759,10 @@ select,
     background: #fff;
 }
 
-.kategori-vitrin-ok:disabled {
+.kategori-vitrin-ok.swiper-button-disabled {
     opacity: 0.35;
     cursor: default;
+    pointer-events: none;
 }
 
 .kategori-vitrin-ok-sol {
@@ -3192,38 +3130,54 @@ select,
 }
 
 /* ==========================================
-   KATEGORİ VİTRİNLERİ — CAROUSEL (1199px ve altı: tablet + mobil)
-   1200px+ üstteki 4 kolonlu sabit grid olarak kalır (değişmez).
+   KATEGORİ VİTRİNLERİ — SWIPER (1199px ve altı: tablet + mobil)
+   1200px+ üstte Swiper slidesPerView:4 + simulateTouch:false/allowTouchMove:
+   false ile görsel olarak sabit bir 4'lü grid gibi davranır (bkz. magaza.js).
+   Kart genişliği artık CSS'te değil, Swiper'ın kendi slidesPerView/
+   spaceBetween ayarlarıyla (inline stil olarak) belirleniyor — bu yüzden
+   burada sadece kart YÜKSEKLİĞİ ve nokta/ok GÖRÜNÜRLÜĞÜ yönetiliyor.
    ========================================== */
 
-@media (max-width: 1199px) {
+.kategori-vitrin-swiper {
+    overflow: hidden;
+}
+
+.kategori-vitrin-noktalar {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.kategori-vitrin-noktalar .nokta {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--renk-kenar);
+    cursor: pointer;
+    transition: var(--gecis);
+}
+
+.kategori-vitrin-noktalar .nokta.aktif {
+    background: var(--renk-birincil);
+    width: 18px;
+    border-radius: 3px;
+}
+
+@media (min-width: 1200px) {
+    .kategori-vitrin-noktalar {
+        display: none;
+    }
+}
+
+/* Tablet (768px - 1199px): ~3 kart, ok butonları görünür */
+@media (min-width: 768px) and (max-width: 1199px) {
     .kategori-vitrin-ok {
         display: flex;
     }
 
-    .kategori-vitrin-grid {
-        display: flex !important;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        scroll-snap-type: x mandatory;
-        gap: 16px;
-        padding-bottom: 4px;
-        -webkit-overflow-scrolling: touch;
-        /* pan-x DEĞİL: yatay kaydırma JS ile elle (touchstart/move/end)
-           yönetiliyor (bkz. magaza.js dokunmaylaYatayKaydir). pan-y,
-           tarayıcıya "dikey pan bu elementin işi değil, native olarak sen
-           yönet" diyor; yatay yön ise JS'in kontrolünde. */
-        touch-action: pan-y;
-        scrollbar-width: none;
-    }
-
-    .kategori-vitrin-grid::-webkit-scrollbar {
-        display: none;
-    }
-
-    .kategori-vitrin-grid .category-highlight-kart {
-        scroll-snap-align: start;
+    .category-highlight-kart {
+        height: 420px;
     }
 
     /* Metinlerin kırılıp kart yüksekliğini bozmaması için hafif küçültme */
@@ -3234,61 +3188,21 @@ select,
     .category-highlight-slogan {
         font-size: 0.72rem;
     }
-
-    .kategori-vitrin-noktalar {
-        display: flex;
-        justify-content: center;
-        gap: 6px;
-        margin-top: 14px;
-    }
-
-    .kategori-vitrin-noktalar .nokta {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--renk-kenar);
-        transition: var(--gecis);
-    }
-
-    .kategori-vitrin-noktalar .nokta.aktif {
-        background: var(--renk-birincil);
-        width: 18px;
-        border-radius: 3px;
-    }
 }
 
-/* Tablet (768px - 1199px): aynı anda ~3 kart, sabit/orantılı genişlik */
-@media (min-width: 768px) and (max-width: 1199px) {
-    .kategori-vitrin-grid .category-highlight-kart {
-        flex: 0 0 calc((100% - 2 * 16px) / 3);
-        height: 420px;
-    }
-}
-
-/* Tablet (768px - 1024px, asıl tablet tanımı): ok butonları gizli, sadece
-   swipe/dot ile gezinme. 1025px-1199px ("geniş tablet/küçük masaüstü")
-   aralığında oklar üstteki 1199px kuralından miras kalarak görünür kalır. */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .kategori-vitrin-ok {
-        display: none;
-    }
-}
-
-/* Mobil (767px ve altı): aynı anda 1 kart, sağdan bir sonraki kartın
-   dilimi görünecek şekilde ("peek efekti") %100 yerine %88 genişlik */
+/* Mobil (767px ve altı): peek efekti (slidesPerView:1.15 ile Swiper'da
+   ayarlanıyor), ok butonları gizli — sadece swipe/dot ile gezinme. */
 @media (max-width: 767px) {
-    .kategori-vitrin-grid {
-        gap: 12px;
+    .category-highlight-kart {
+        height: 328px;
     }
 
-    .kategori-vitrin-grid .category-highlight-kart {
-        flex: 0 0 88%;
-        height: 380px;
+    .category-highlight-ad {
+        font-size: 1.15rem;
     }
 
-    /* Ok butonları mobilde tamamen gizlenir, gezinme sadece swipe/dot ile yapılır */
-    .kategori-vitrin-ok {
-        display: none;
+    .category-highlight-slogan {
+        font-size: 0.72rem;
     }
 }
 
@@ -3343,35 +3257,35 @@ select,
 }
 
 /* ==========================================
-   ÖNE ÇIKAN KATEGORİLER — ÜRÜN GRİD'İ CAROUSEL (1199px ve altı)
-   1200px+ üstteki Bootstrap .row/.col-md-3 4'lü sabit grid aynen kalır
-   (değişmez). 1199px ve altında sayfa (page) bazlı, nokta ile tıklanabilir
-   bir carousel'e dönüşür — her "sayfa" bir grup kart (2-3 kart) demektir,
-   kart başına değil sayfa başına bir nokta gösterilir.
+   ÖNE ÇIKAN KATEGORİLER — ÜRÜN GRİD'İ SWIPER (1199px ve altı)
+   1200px+ üstte Bootstrap .row/.col-md-3 4'lü sabit grid aynen kalır
+   (JS'te Swiper bu genişlikte destroy ediliyor). Nokta (pagination)
+   Swiper'ın kendi bullet mekanizmasıyla yönetilir, burada sadece GÖRSEL
+   tasarımı tanımlanıyor; destroy() sonrası masaüstünde kalabilecek eski
+   bullet'ların görünmemesi için konteyner varsayılan olarak gizli.
    ========================================== */
 
-@media (max-width: 1199px) {
-    #kategoriUrunGrid {
-        display: flex !important;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        scroll-snap-type: x mandatory;
-        gap: 16px;
-        padding-bottom: 4px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        /* pan-x DEĞİL: bkz. .kategori-vitrin-grid'teki aynı isimli not —
-           yatay kaydırma JS ile elle yönetiliyor, dikey pan native kalıyor. */
-        touch-action: pan-y;
-    }
+.kategori-urun-noktalar {
+    display: none;
+}
 
-    #kategoriUrunGrid::-webkit-scrollbar {
-        display: none;
+@media (max-width: 1199px) {
+    /* Bootstrap'ın .row'u flex-wrap:wrap'i HİÇBİR breakpoint'e bağlı olmadan
+       (bizim ≤1199px kuralımızdan habersiz) her zaman uygular — Swiper tek
+       satırlık bir şerit beklediği için bu, kartların (özellikle mobilde
+       slidesPerView~1.35 iken satır başına 1 kart sığdığından) alt alta
+       dizilmesine yol açıyordu. #kategoriUrunGrid bir ID seçici olduğu için
+       .row'un class specificity'sini kesin olarak eziyor. .g-4'ün column
+       padding'i de Swiper'ın kendi spaceBetween'iyle çift boşluk
+       yaratmasın diye sıfırlanıyor.
+       (ID > class specificity, bu yüzden .row'u burada geçersiz kılar) */
+    #kategoriUrunGrid {
+        flex-wrap: nowrap;
+        margin: 0;
     }
 
     .kategori-urun-slayt {
-        scroll-snap-align: start;
+        padding: 0;
     }
 
     .kategori-urun-noktalar {
@@ -3397,52 +3311,19 @@ select,
     }
 }
 
-/* Tablet (768px - 1199px): aynı anda ~3 kart, sabit/orantılı genişlik */
-@media (min-width: 768px) and (max-width: 1199px) {
-    .kategori-urun-slayt {
-        flex: 0 0 calc((100% - 2 * 16px) / 3);
-        max-width: none;
-    }
-}
-
-/* Mobil (767px ve altı): aynı anda 1 kart, sağdan bir sonraki kartın
-   dilimi görünecek şekilde ("peek efekti") %91 genişlik */
-@media (max-width: 767px) {
-    #kategoriUrunGrid {
-        gap: 12px;
-    }
-
-    .kategori-urun-slayt {
-        flex: 0 0 70%;
-        max-width: none;
-    }
-}
-
 /* ==========================================
-   3'LÜ TANITIM BANNER — TABLET/MOBİL CAROUSEL (≤1024px, 2 kart görünür)
+   3'LÜ TANITIM BANNER — SWIPER (≤1024px, 2 kart görünür)
+   1025px+ üstte 3'lü sabit CSS grid aynen kalır (Swiper JS'te destroy edilir).
    ========================================== */
 
+.tanitim-banner-noktalar {
+    display: none;
+}
+
 @media (max-width: 1024px) {
-    .tanitim-banner-grid {
-        display: flex !important;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 12px;
-        margin: 0;
-        padding: 0 0 4px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .tanitim-banner-grid::-webkit-scrollbar {
-        display: none;
-    }
-
     .tanitim-banner {
         width: auto;
         max-width: none;
-        scroll-snap-align: start;
         height: 440px;
         border-radius: 16px;
         margin: 0;
@@ -3489,18 +3370,10 @@ select,
     }
 }
 
-/* Tablet (768px - 1024px): aynı anda 2 kart */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .tanitim-banner {
-        flex: 0 0 calc((100% - 12px) / 2);
-    }
-}
-
-/* Mobil (767px ve altı): aynı anda 1 kart, tam genişlik.
-   Yükseklik, tablet'in 440px değerinden BAĞIMSIZ, mobile özel olarak ayarlanır. */
+/* Mobil (767px ve altı): yükseklik, tablet'in 440px değerinden BAĞIMSIZ,
+   mobile özel olarak ayarlanır (genişlik Swiper'ın slidesPerView'ından gelir). */
 @media (max-width: 767px) {
     .tanitim-banner {
-        flex: 0 0 100%;
         height: 500px;
     }
 }
@@ -3663,23 +3536,8 @@ select,
     position: relative;
 }
 
-.yorum-carousel {
-    display: flex;
-    gap: 20px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 4px;
-}
-
-.yorum-carousel::-webkit-scrollbar {
-    display: none;
-}
-
 .urun-yorum-kart {
     flex: 0 0 340px;
-    scroll-snap-align: start;
     background: var(--renk-beyaz);
     border-radius: var(--yuvarlatma);
     padding: 24px;
@@ -3759,12 +3617,12 @@ select,
     color: #fff;
 }
 
-.yorum-carousel-ok:disabled {
+.yorum-carousel-ok.swiper-button-disabled {
     opacity: 0.35;
     cursor: default;
 }
 
-.yorum-carousel-ok:disabled:hover {
+.yorum-carousel-ok.swiper-button-disabled:hover {
     background: var(--renk-beyaz);
     border-color: var(--renk-kenar);
     color: #111;
@@ -3821,15 +3679,24 @@ select,
 }
 
 /* ==========================================
-   İNDİRİM KARTLARI + ÖZELLİK KARTLARI — MOBİL NOKTA (DOT) SAYFALAMA
+   İNDİRİM KARTLARI + ÖZELLİK KARTLARI — SWIPER NOKTA (DOT) SAYFALAMA
+   Konteynerler varsayılan gizli: ≥1025px'te Swiper destroy edildiğinde
+   kalabilecek eski bullet'lar masaüstünde görünmesin diye.
    ========================================== */
 
 .indirim-kart-noktalar,
 .ozellik-kart-noktalar {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 14px;
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    .indirim-kart-noktalar,
+    .ozellik-kart-noktalar {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 14px;
+    }
 }
 
 .indirim-kart-noktalar .nokta,
@@ -3851,6 +3718,20 @@ select,
     background: var(--renk-birincil);
     width: 18px;
     border-radius: 3px;
+}
+
+/* Bu bölümlerde Swiper masaüstünde (≥1025px) JS ile destroy ediliyor ama
+   .swiper wrapper div'i DOM'da kalıyor — Swiper'ın statik CSS'i
+   .swiper{overflow:hidden} kuralını JS'ten bağımsız her zaman uygular.
+   Masaüstünde grid'e dönen bu bölümlerde hover kaldırma/gölge efektlerinin
+   kırpılmaması için overflow orada visible'a çevriliyor. */
+@media (min-width: 1025px) {
+    .kategori-urun-swiper,
+    .tanitim-banner-swiper,
+    .promo-banners-swiper,
+    .why-choose-us-swiper {
+        overflow: visible;
+    }
 }
 
 /* ==========================================
@@ -4031,6 +3912,36 @@ select,
         grid-template-columns: 1.5fr 1fr 1fr;
         gap: 32px;
         align-items: start;
+    }
+}
+
+/* ==========================================
+   TABLET ARALIĞI (768px-991px, iPad görünümü) — GENEL PADDING AZALTMA
+   ========================================== */
+
+@media (min-width: 768px) and (max-width: 991px) {
+    #kategoriUrunGrid,
+    .kategori-panel-alani .row {
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    /* #kategoriUrunGrid Bootstrap'ın .row class'ını taşıyor (row g-4) —
+       negatif margin + gutter mantığı --bs-gutter-x'ten geliyor, o da
+       daraltılıyor. .tanitim-banner-grid ise .row DEĞİL (kendi swiper
+       wrapper'ı), bu yüzden ona bu kural uygulanmıyor. */
+    #kategoriUrunGrid.row {
+        --bs-gutter-x: 12px;
+    }
+
+    .tanitim-banner-grid {
+        gap: 12px;
+    }
+
+    .paket-ozet {
+        padding: 16px 18px;
     }
 }
 

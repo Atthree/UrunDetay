@@ -64,19 +64,21 @@ $vitrinGorselleri = [
                 <i class="bi bi-chevron-left"></i>
             </button>
 
-            <div class="category-highlights-grid kategori-vitrin-grid" id="kategoriVitrinGrid">
-                <?php foreach ($vitrinKategorileri as $vk): ?>
-                    <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart">
-                        <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel" draggable="false">
-                        <div class="category-highlight-overlay"></div>
-                        <div class="category-highlight-metin">
-                            <span class="category-highlight-ad">
-                                <?php echo htmlspecialchars($vitrinBaslik[$vk]); ?><sup><?php echo (int)($vitrinSayilari[$vk] ?? 0); ?></sup>
-                            </span>
-                            <span class="category-highlight-slogan">Mağazam—kaliteli ve güvenilir alışveriş.</span>
-                        </div>
-                    </a>
-                <?php endforeach; ?>
+            <div class="swiper kategori-vitrin-swiper">
+                <div class="swiper-wrapper" id="kategoriVitrinGrid">
+                    <?php foreach ($vitrinKategorileri as $vk): ?>
+                        <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart swiper-slide">
+                            <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel" draggable="false">
+                            <div class="category-highlight-overlay"></div>
+                            <div class="category-highlight-metin">
+                                <span class="category-highlight-ad">
+                                    <?php echo htmlspecialchars($vitrinBaslik[$vk]); ?><sup><?php echo (int)($vitrinSayilari[$vk] ?? 0); ?></sup>
+                                </span>
+                                <span class="category-highlight-slogan">Mağazam—kaliteli ve güvenilir alışveriş.</span>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
             <button type="button" class="kategori-vitrin-ok kategori-vitrin-ok-sag" id="kategoriVitrinOkSag" aria-label="Sonraki kategori">
@@ -94,50 +96,54 @@ $vitrinGorselleri = [
 <section class="container bolum-boslugu">
     <h2 class="section-baslik text-center">Öne Çıkan Kategoriler</h2>
 
-    <div class="kategori-tab-bar">
-        <?php foreach ($oneCikanKategoriler as $i => $kat): ?>
-            <button type="button"
-                    class="kategori-tab<?php echo $i === 0 ? ' aktif' : ''; ?>"
-                    data-kategori="<?php echo htmlspecialchars($kat['kategori']); ?>">
-                <?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?>
-            </button>
-        <?php endforeach; ?>
+    <div class="swiper kategori-tab-swiper">
+        <div class="swiper-wrapper kategori-tab-bar">
+            <?php foreach ($oneCikanKategoriler as $i => $kat): ?>
+                <button type="button"
+                        class="kategori-tab swiper-slide<?php echo $i === 0 ? ' aktif' : ''; ?>"
+                        data-kategori="<?php echo htmlspecialchars($kat['kategori']); ?>">
+                    <?php echo htmlspecialchars(ucfirst($kat['kategori'])); ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
     </div>
 
     <div class="kategori-panel-alani">
         <div class="kategori-spinner" id="kategoriSpinner"></div>
-        <div class="row g-4" id="kategoriUrunGrid">
-            <?php foreach ($ilkKategoriUrunleri as $urun): ?>
-                <div class="col-6 col-md-3 kategori-urun-slayt">
-                    <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
-                        <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler ?? []) ? ' aktif' : ''; ?>"
-                                data-id="<?php echo $urun['id']; ?>"
-                                onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
-                                title="Favorilere Ekle">
-                            <i class="bi <?php echo in_array($urun['id'], $favoriIdler ?? []) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
-                        </button>
-                        <button class="hizli-sepet-btn"
-                                data-id="<?php echo $urun['id']; ?>"
-                                onclick="event.preventDefault();event.stopPropagation();window.hizliSepeteEkle(<?php echo $urun['id']; ?>, this);"
-                                title="Sepete Ekle">
-                            <i class="bi bi-bag-plus"></i>
-                        </button>
-                        <div class="urun-resim-wrap">
-                            <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
-                        </div>
-                        <div class="urun-bilgi">
-                            <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
-                            <?php if ($urun['yildiz_ortalama'] !== null): ?>
-                                <span class="urun-yildizlar"><?php echo yildizlar_html($urun['yildiz_ortalama']); ?></span>
-                            <?php endif; ?>
-                            <span class="urun-fiyat">$<?php echo number_format($urun['fiyat_usd'], 2); ?></span>
-                            <?php if ((int)$urun['miktar'] === 0): ?>
-                                <span class="urun-stok-yok">Stokta Yok</span>
-                            <?php endif; ?>
-                        </div>
-                    </a>
-                </div>
-            <?php endforeach; ?>
+        <div class="swiper kategori-urun-swiper">
+            <div class="row g-4 swiper-wrapper" id="kategoriUrunGrid">
+                <?php foreach ($ilkKategoriUrunleri as $urun): ?>
+                    <div class="col-6 col-md-3 kategori-urun-slayt swiper-slide">
+                        <a href="urun.php?id=<?php echo $urun['id']; ?>" class="urun-kart">
+                            <button class="favori-btn<?php echo in_array($urun['id'], $favoriIdler ?? []) ? ' aktif' : ''; ?>"
+                                    data-id="<?php echo $urun['id']; ?>"
+                                    onclick="event.preventDefault();event.stopPropagation();toggleFavori(<?php echo $urun['id']; ?>, this);"
+                                    title="Favorilere Ekle">
+                                <i class="bi <?php echo in_array($urun['id'], $favoriIdler ?? []) ? 'bi-heart-fill' : 'bi-heart'; ?>"></i>
+                            </button>
+                            <button class="hizli-sepet-btn"
+                                    data-id="<?php echo $urun['id']; ?>"
+                                    onclick="event.preventDefault();event.stopPropagation();window.hizliSepeteEkle(<?php echo $urun['id']; ?>, this);"
+                                    title="Sepete Ekle">
+                                <i class="bi bi-bag-plus"></i>
+                            </button>
+                            <div class="urun-resim-wrap">
+                                <div class="urun-resim" style="background-image:url('<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')"></div>
+                            </div>
+                            <div class="urun-bilgi">
+                                <span class="urun-baslik"><?php echo htmlspecialchars($urun['baslik_tr']); ?></span>
+                                <?php if ($urun['yildiz_ortalama'] !== null): ?>
+                                    <span class="urun-yildizlar"><?php echo yildizlar_html($urun['yildiz_ortalama']); ?></span>
+                                <?php endif; ?>
+                                <span class="urun-fiyat">$<?php echo number_format($urun['fiyat_usd'], 2); ?></span>
+                                <?php if ((int)$urun['miktar'] === 0): ?>
+                                    <span class="urun-stok-yok">Stokta Yok</span>
+                                <?php endif; ?>
+                            </div>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
 
         <div class="kategori-urun-noktalar" id="kategoriUrunNoktalar"></div>
@@ -173,36 +179,38 @@ $vitrinGorselleri = [
 <!-- 3'lü Tanıtım Banner Grid'i (yalnızca ana sayfada) -->
 <?php if (!$urunlerGoster): ?>
 <section class="container bolum-boslugu">
-    <div class="tanitim-banner-grid">
-        <a href="index.php?kategori=kitchen-accessories#urunler" class="tanitim-banner" style="background-image:url('/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg')">
-            <div class="tanitim-banner-katman"></div>
-            <div class="tanitim-banner-icerik">
-                <span class="tanitim-etiket">%50'ye Varan İndirim</span>
-                <h3>Mutfak Aksesuarları</h3>
-                <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
-            </div>
-        </a>
+    <div class="swiper tanitim-banner-swiper">
+        <div class="tanitim-banner-grid swiper-wrapper">
+            <a href="index.php?kategori=kitchen-accessories#urunler" class="tanitim-banner swiper-slide" style="background-image:url('/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg')">
+                <div class="tanitim-banner-katman"></div>
+                <div class="tanitim-banner-icerik">
+                    <span class="tanitim-etiket">%50'ye Varan İndirim</span>
+                    <h3>Mutfak Aksesuarları</h3>
+                    <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
+                </div>
+            </a>
 
-        <a href="index.php?kategori=mens-shoes#urunler" class="tanitim-banner tanitim-banner-video">
-            <video class="tanitim-banner-video-el" autoplay muted loop playsinline>
-                <source src="/UrunDetay/magaza/assets/video/hero.mp4" type="video/mp4">
-            </video>
-            <div class="tanitim-banner-katman"></div>
-            <div class="tanitim-banner-icerik">
-                <span class="tanitim-etiket">%50'ye Varan İndirim</span>
-                <h3>Erkek Ayakkabı Modelleri</h3>
-                <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
-            </div>
-        </a>
+            <a href="index.php?kategori=mens-shoes#urunler" class="tanitim-banner tanitim-banner-video swiper-slide">
+                <video class="tanitim-banner-video-el" autoplay muted loop playsinline>
+                    <source src="/UrunDetay/magaza/assets/video/hero.mp4" type="video/mp4">
+                </video>
+                <div class="tanitim-banner-katman"></div>
+                <div class="tanitim-banner-icerik">
+                    <span class="tanitim-etiket">%50'ye Varan İndirim</span>
+                    <h3>Erkek Ayakkabı Modelleri</h3>
+                    <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
+                </div>
+            </a>
 
-        <a href="index.php?kategori=beauty#urunler" class="tanitim-banner" style="background-image:url('/UrunDetay/magaza/assets/img/GuzellikUrunleri.jpg')">
-            <div class="tanitim-banner-katman"></div>
-            <div class="tanitim-banner-icerik">
-                <span class="tanitim-etiket">Mükemmel Tasarım</span>
-                <h3>Güzellik Ürünleri Koleksiyonu</h3>
-                <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
-            </div>
-        </a>
+            <a href="index.php?kategori=beauty#urunler" class="tanitim-banner swiper-slide" style="background-image:url('/UrunDetay/magaza/assets/img/GuzellikUrunleri.jpg')">
+                <div class="tanitim-banner-katman"></div>
+                <div class="tanitim-banner-icerik">
+                    <span class="tanitim-etiket">Mükemmel Tasarım</span>
+                    <h3>Güzellik Ürünleri Koleksiyonu</h3>
+                    <span class="btn btn-light rounded-pill px-4">Koleksiyonu Gör</span>
+                </div>
+            </a>
+        </div>
     </div>
 
     <div class="tanitim-banner-noktalar" id="tanitimBannerNoktalar"></div>
@@ -445,25 +453,27 @@ $urunYorumCarousel = $pdo->query("
             <button type="button" class="yorum-carousel-ok yorum-carousel-ok-sol" id="yorumCarouselOkSol" aria-label="Önceki yorumlar">
                 <i class="bi bi-chevron-left"></i>
             </button>
-            <div class="yorum-carousel" id="yorumCarousel">
-                <?php foreach ($urunYorumCarousel as $yorum): ?>
-                    <div class="urun-yorum-kart">
-                        <div class="urun-yorum-yildizlar">
-                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                <i class="bi <?php echo $i <= (int)$yorum['puan'] ? 'bi-star-fill' : 'bi-star'; ?>"></i>
-                            <?php endfor; ?>
-                        </div>
-                        <div class="yorum-yazan"><?php echo htmlspecialchars($yorum['reviewer_adi'] ?? 'Müşteri'); ?></div>
-                        <p class="urun-yorum-metin"><?php echo htmlspecialchars($yorum['yorum']); ?></p>
-                        <div class="urun-yorum-urun">
-                            <img src="<?php echo htmlspecialchars(resim_url($yorum['ana_resim'])); ?>" alt="" draggable="false">
-                            <div>
-                                <div class="ad"><?php echo htmlspecialchars($yorum['baslik_tr']); ?></div>
-                                <div class="fiyat">$<?php echo number_format($yorum['fiyat_usd'], 2); ?></div>
+            <div class="swiper yorum-swiper">
+                <div class="yorum-carousel swiper-wrapper" id="yorumCarousel">
+                    <?php foreach ($urunYorumCarousel as $yorum): ?>
+                        <div class="urun-yorum-kart swiper-slide">
+                            <div class="urun-yorum-yildizlar">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <i class="bi <?php echo $i <= (int)$yorum['puan'] ? 'bi-star-fill' : 'bi-star'; ?>"></i>
+                                <?php endfor; ?>
+                            </div>
+                            <div class="yorum-yazan"><?php echo htmlspecialchars($yorum['reviewer_adi'] ?? 'Müşteri'); ?></div>
+                            <p class="urun-yorum-metin"><?php echo htmlspecialchars($yorum['yorum']); ?></p>
+                            <div class="urun-yorum-urun">
+                                <img src="<?php echo htmlspecialchars(resim_url($yorum['ana_resim'])); ?>" alt="" draggable="false">
+                                <div>
+                                    <div class="ad"><?php echo htmlspecialchars($yorum['baslik_tr']); ?></div>
+                                    <div class="fiyat">$<?php echo number_format($yorum['fiyat_usd'], 2); ?></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
             <button type="button" class="yorum-carousel-ok yorum-carousel-ok-sag" id="yorumCarouselOkSag" aria-label="Sonraki yorumlar">
                 <i class="bi bi-chevron-right"></i>
@@ -477,24 +487,26 @@ $urunYorumCarousel = $pdo->query("
 <!-- Promosyon Banner'ları -->
 <section class="promo-banners">
     <div class="container">
-        <div class="promo-banners-grid">
-            <div class="promo-banner promo-banner-koyu">
-                <div class="promo-banner-metin">
-                    <span class="promo-banner-etiket">İNDİRİM %30-50</span>
-                    <h3 class="promo-banner-baslik">Mutfak Setleri</h3>
-                    <p class="promo-banner-aciklama">149 TL'den başlayan fiyatlarla, kaçırmayın...</p>
-                    <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
+        <div class="swiper promo-banners-swiper">
+            <div class="promo-banners-grid swiper-wrapper">
+                <div class="promo-banner promo-banner-koyu swiper-slide">
+                    <div class="promo-banner-metin">
+                        <span class="promo-banner-etiket">İNDİRİM %30-50</span>
+                        <h3 class="promo-banner-baslik">Mutfak Setleri</h3>
+                        <p class="promo-banner-aciklama">149 TL'den başlayan fiyatlarla, kaçırmayın...</p>
+                        <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
+                    </div>
+                    <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel" draggable="false">
                 </div>
-                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel" draggable="false">
-            </div>
-            <div class="promo-banner promo-banner-bordo">
-                <div class="promo-banner-metin">
-                    <span class="promo-banner-etiket">%75'E VARAN İNDİRİM</span>
-                    <h3 class="promo-banner-baslik">Sınırlı Süreli Fırsatlar</h3>
-                    <p class="promo-banner-aciklama">99 TL'den başlayan fiyatlarla, kaçırmayın...</p>
-                    <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
+                <div class="promo-banner promo-banner-bordo swiper-slide">
+                    <div class="promo-banner-metin">
+                        <span class="promo-banner-etiket">%75'E VARAN İNDİRİM</span>
+                        <h3 class="promo-banner-baslik">Sınırlı Süreli Fırsatlar</h3>
+                        <p class="promo-banner-aciklama">99 TL'den başlayan fiyatlarla, kaçırmayın...</p>
+                        <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
+                    </div>
+                    <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel" draggable="false">
                 </div>
-                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel" draggable="false">
             </div>
         </div>
 
@@ -511,26 +523,28 @@ $urunYorumCarousel = $pdo->query("
             Kaliteli ürünler, hızlı teslimat ve güvenilir hizmeti bir arada sunuyoruz.
         </p>
 
-        <div class="why-choose-us-grid">
-            <div class="why-choose-us-oge">
-                <div class="feature-icon"><i class="fa-solid fa-box"></i></div>
-                <h3>Orijinal Ürün Garantisi</h3>
-                <p>Tüm ürünlerimiz %100 orijinal ve kalite garantilidir.</p>
-            </div>
-            <div class="why-choose-us-oge">
-                <div class="feature-icon"><i class="fa-solid fa-truck-fast"></i></div>
-                <h3>Hızlı ve Ücretsiz Kargo</h3>
-                <p>Siparişleriniz özenle paketlenir, hızlıca kapınıza gelir.</p>
-            </div>
-            <div class="why-choose-us-oge">
-                <div class="feature-icon"><i class="fa-solid fa-rotate-left"></i></div>
-                <h3>14 Gün Kolay İade</h3>
-                <p>Beğenmediğiniz ürünü sorgusuz sualsiz iade edebilirsiniz.</p>
-            </div>
-            <div class="why-choose-us-oge">
-                <div class="feature-icon"><i class="fa-solid fa-headset"></i></div>
-                <h3>7/24 Müşteri Desteği</h3>
-                <p>Her sorunuzda size yardımcı olmak için buradayız.</p>
+        <div class="swiper why-choose-us-swiper">
+            <div class="why-choose-us-grid swiper-wrapper">
+                <div class="why-choose-us-oge swiper-slide">
+                    <div class="feature-icon"><i class="fa-solid fa-box"></i></div>
+                    <h3>Orijinal Ürün Garantisi</h3>
+                    <p>Tüm ürünlerimiz %100 orijinal ve kalite garantilidir.</p>
+                </div>
+                <div class="why-choose-us-oge swiper-slide">
+                    <div class="feature-icon"><i class="fa-solid fa-truck-fast"></i></div>
+                    <h3>Hızlı ve Ücretsiz Kargo</h3>
+                    <p>Siparişleriniz özenle paketlenir, hızlıca kapınıza gelir.</p>
+                </div>
+                <div class="why-choose-us-oge swiper-slide">
+                    <div class="feature-icon"><i class="fa-solid fa-rotate-left"></i></div>
+                    <h3>14 Gün Kolay İade</h3>
+                    <p>Beğenmediğiniz ürünü sorgusuz sualsiz iade edebilirsiniz.</p>
+                </div>
+                <div class="why-choose-us-oge swiper-slide">
+                    <div class="feature-icon"><i class="fa-solid fa-headset"></i></div>
+                    <h3>7/24 Müşteri Desteği</h3>
+                    <p>Her sorunuzda size yardımcı olmak için buradayız.</p>
+                </div>
             </div>
         </div>
 
