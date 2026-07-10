@@ -6,8 +6,7 @@ require_once __DIR__ . '/includes/anasayfa-veri.php';
 <!-- Hero Section (yalnızca ana sayfada göster) -->
 <?php if (!$urunlerGoster): ?>
 <section class="hero-video-wrap">
-    <video class="hero-video" autoplay muted loop playsinline
-           poster="/UrunDetay/magaza/assets/img/hero-poster.jpg">
+    <video class="hero-video" autoplay muted loop playsinline>
         <source src="/UrunDetay/magaza/assets/video/hero.mp4" type="video/mp4">
     </video>
     <div class="hero-video-katman"></div>
