@@ -57,13 +57,24 @@ if (girisYapmisMi()) {
 <header class="site-header">
     <div class="header-genis">
         <div class="header-ust">
+            <!-- Mobil/Tablet Hamburger (header-ust'un DOĞRUDAN çocuğu olmalı;
+                 .header-ikonlar içine gömülüyse, header-ikonlar'ın kendi
+                 position:absolute'ü hamburger'ın sol:0 konumlanmasının
+                 referans aldığı "containing block" olur ve hamburger sağdaki
+                 ikon kümesine göre konumlanır — header-ust'un sol kenarına
+                 değil. Bu yüzden burada ayrı, bağımsız bir sibling olarak
+                 duruyor. -->
+            <button class="navbar-toggler hamburger-btn d-md-none" type="button" id="hamburgerBtn" data-bs-toggle="offcanvas" data-bs-target="#anaNav" aria-controls="anaNav" title="Menü">
+                <i class="bi bi-list"></i>
+            </button>
+
             <!-- Logo -->
             <a href="/UrunDetay/magaza/index.php" class="brand">
                 <i class="bi bi-bag-heart"></i> Mağazam
             </a>
 
             <!-- Ana Navigasyon (Mega Menü) -->
-            <nav class="ana-nav offcanvas-end offcanvas-md" tabindex="-1" id="anaNav" aria-labelledby="anaNavLabel">
+            <nav class="ana-nav offcanvas-start offcanvas-md" tabindex="-1" id="anaNav" aria-labelledby="anaNavLabel">
                 <div class="offcanvas-header d-md-none">
                     <h5 class="offcanvas-title" id="anaNavLabel">Menü</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#anaNav" aria-label="Kapat"></button>
@@ -136,11 +147,6 @@ if (girisYapmisMi()) {
                 <button class="header-ikon-btn" id="sepetAcBtn" data-bs-toggle="offcanvas" data-bs-target="#sepetSidebar" title="Sepetim">
                     <i class="bi bi-bag"></i>
                     <span class="badge-sayi" id="sepetBadge">0</span>
-                </button>
-
-                <!-- Mobil Hamburger -->
-                <button class="navbar-toggler hamburger-btn d-md-none" type="button" id="hamburgerBtn" data-bs-toggle="offcanvas" data-bs-target="#anaNav" aria-controls="anaNav" title="Menü">
-                    <i class="bi bi-list"></i>
                 </button>
             </div>
         </div>

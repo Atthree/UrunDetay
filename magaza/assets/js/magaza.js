@@ -104,7 +104,7 @@ function sepetSidebarGuncelle() {
         if (u.type === 'bundle') {
             html += `
                 <div class="sepet-urun sepet-urun-paket">
-                    <img src="${u.resim}" alt="${u.baslik}">
+                    <img src="${u.resim}" alt="${u.baslik}" draggable="false">
                     <div class="sepet-urun-bilgi">
                         <div class="sepet-paket-rozet"><i class="bi bi-box-seam"></i> Paket</div>
                         <div class="ad">${u.baslik}</div>
@@ -120,7 +120,7 @@ function sepetSidebarGuncelle() {
 
         html += `
             <div class="sepet-urun">
-                <img src="${u.resim}" alt="${u.baslik}">
+                <img src="${u.resim}" alt="${u.baslik}" draggable="false">
                 <div class="sepet-urun-bilgi">
                     <div class="ad">${u.baslik}</div>
                     <div class="fiyat">$${araToplam.toFixed(2)}</div>
@@ -272,7 +272,7 @@ function sepetSidebarGuncelle() {
                         data.forEach(u => {
                             html += `
                                 <a href="/UrunDetay/magaza/urun.php?id=${u.id}" class="arama-sonuc-item">
-                                    <img src="${u.ana_resim || ''}" alt="">
+                                    <img src="${u.ana_resim || ''}" alt="" draggable="false">
                                     <div class="arama-sonuc-bilgi">
                                         <div class="ad">${u.baslik_tr}</div>
                                         <div class="fiyat">$${parseFloat(u.fiyat_usd).toFixed(2)}</div>
@@ -652,6 +652,59 @@ function sepetSidebarGuncelle() {
     });
 
     // ==========================================
+    // YATAY CAROUSEL'LER İÇİN ELLE DOKUNMA (TOUCH) SÜRÜKLEME
+    // Bu grid'lerde overflow-x:auto + scroll-snap-type native touch-scroll
+    // sağlıyor GİBİ görünse de, bazı tarayıcı/emülatör kombinasyonlarında
+    // (özellikle Chrome DevTools'un fare tabanlı dokunmatik simülasyonunda)
+    // native yatay pan hiç tetiklenmeyebiliyor. Bu yüzden yatay yönü JS ile
+    // elle üstleniyoruz; dikey yön hiç ellenmiyor (preventDefault çağrılmıyor)
+    // ki sayfa scroll'u bu değişiklikten etkilenmesin. touch-action:pan-y
+    // (CSS) ile birlikte çalışır: dikeyi tarayıcı native yönetir, yatayı biz.
+    // ==========================================
+
+    function dokunmaylaYatayKaydir(grid) {
+        if (!grid) return;
+
+        let basX = 0;
+        let basY = 0;
+        let baslangicScrollLeft = 0;
+        let yatayKaydirma = false;
+        let yonKararVerildi = false;
+
+        grid.addEventListener('touchstart', function (e) {
+            if (e.touches.length !== 1) return;
+            basX = e.touches[0].clientX;
+            basY = e.touches[0].clientY;
+            baslangicScrollLeft = grid.scrollLeft;
+            yatayKaydirma = false;
+            yonKararVerildi = false;
+        }, { passive: true });
+
+        grid.addEventListener('touchmove', function (e) {
+            if (e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - basX;
+            const dy = e.touches[0].clientY - basY;
+
+            if (!yonKararVerildi) {
+                // Kararsız bölge: kullanıcı henüz net bir yöne hareket
+                // etmedi, hiçbir şey yapma (ne kaydır ne preventDefault).
+                if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+                yatayKaydirma = Math.abs(dx) > Math.abs(dy);
+                yonKararVerildi = true;
+            }
+
+            if (yatayKaydirma) {
+                // Yatay hareket baskın: sayfanın dikey scroll'a kaymasını
+                // engelle, carousel'i parmakla birlikte kaydır.
+                e.preventDefault();
+                grid.scrollLeft = baslangicScrollLeft - dx;
+            }
+            // Dikey hareket baskınsa dokunma — preventDefault çağrılmadığı
+            // için tarayıcı sayfayı normal şekilde dikey kaydırır.
+        }, { passive: false });
+    }
+
+    // ==========================================
     // KATEGORİ VİTRİNLERİ — OK BUTONLARI + NOKTA (DOT) SAYFALAMA
     // ==========================================
 
@@ -661,6 +714,7 @@ function sepetSidebarGuncelle() {
     const kategoriVitrinOkSag = document.getElementById('kategoriVitrinOkSag');
 
     if (kategoriVitrinGrid) {
+        dokunmaylaYatayKaydir(kategoriVitrinGrid);
         const kartlar = kategoriVitrinGrid.children;
 
         function kategoriVitrinBosluk() {
@@ -759,6 +813,7 @@ function sepetSidebarGuncelle() {
     window.addEventListener('resize', kategoriUrunNoktalariGuncelle);
 
     kategoriUrunNoktalariGuncelle();
+    dokunmaylaYatayKaydir(document.getElementById('kategoriUrunGrid'));
 
     // ==========================================
     // 3'LÜ TANITIM BANNER — MOBİL NOKTA (DOT) SAYFALAMA
@@ -1026,7 +1081,7 @@ function sepetSidebarGuncelle() {
         } else {
             liste.innerHTML = paketSepeti.map(u => `
                 <div class="paket-ozet-urun">
-                    <img src="${u.resim}" alt="${u.baslik}">
+                    <img src="${u.resim}" alt="${u.baslik}" draggable="false">
                     <span class="ad">${u.baslik}</span>
                     <button type="button" class="cikar" data-id="${u.id}"><i class="bi bi-x-lg"></i></button>
                 </div>

@@ -29,11 +29,55 @@
     box-sizing: border-box;
 }
 
+/* Kartların içindeki <img>'lerin native (HTML5) sürükleme başlatması, özellikle
+   Chrome'un fare tabanlı dokunmatik simülasyonunda, bir resmin üstünden
+   başlayan yatay kaydırma (swipe) hareketini "resmi sürükle" hareketine
+   çeviriyor ve carousel'in overflow-x kaydırmasını hiç tetiklemeden yutuyordu.
+   Sitede hiçbir yerde native resim sürükleme özelliği kullanılmadığından
+   genel olarak kapatılıyor — carousel/swipe köküne inen düzeltme burası. */
+img {
+    -webkit-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Carousel kartlarının kendisi (link/div sarmalayıcı) için de aynı önlem —
+   sadece <img> değil, kartın tamamı (rozet/ikon/buton dahil) sürükleme
+   başlatmasın. Background-image kullanan kartlarda native drag zaten
+   tetiklenmiyor, bu kural onlara da zarar vermiyor (no-op). */
+a,
+button,
+.category-highlight-kart,
+.urun-kart,
+.tanitim-banner,
+.promo-banner {
+    -webkit-user-drag: none;
+    user-drag: none;
+}
+
 body {
     font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
     color: var(--renk-metin);
     background: var(--renk-arka);
     line-height: 1.6;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Form alanları (input/textarea/select) ve düzenlenebilir alanlar:
+   body'deki genel seçim engeli burada istisna ile geri açılıyor — kullanıcı
+   yazdığı/kopyalamak isteyeceği metni (ör. adres, telefon, arama kutusu)
+   normal şekilde seçebilmeli. */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+    -webkit-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 }
 
 /* ============================================
@@ -374,6 +418,143 @@ body {
 
 .hamburger-btn:focus {
     box-shadow: none;
+}
+
+/* ============================================
+   TABLET + MOBİL (≤1024px): HEADER'I HAMBURGER DRAWER'A DÖNÜŞTÜR
+   Aynı kural seti hem tabletde hem mobilde uygulanıyor — tek component/state
+   (#anaNav + Bootstrap Offcanvas), sadece bu breakpoint'te görünürlük/konum
+   değişiyor. Bootstrap'ın .offcanvas-md kuralı 768px'te navigasyonu
+   kendiliğinden normal akışa döndürüyor (bu eşik Bootstrap'ın kendi CSS'ine
+   gömülü, başka yerden kapatılamaz) — bu yüzden 768-1024 aralığı için kapalı-
+   çekmece davranışı burada elle yeniden oluşturuluyor. 767px altında ise
+   Bootstrap'ın kendi native .offcanvas-md.offcanvas-start kuralı zaten aynı
+   soldan-kayma davranışını sağlıyor; bu blok orada onunla aynı sonucu üretecek
+   şekilde (solda, aynı geçiş) yazıldı. 1025px+ (gerçek masaüstü) etkilenmiyor.
+   ========================================== */
+@media (max-width: 1024px) {
+    /* SOL: hamburger / ORTA: logo (gerçek ortalama) / SAĞ: arama + sepet.
+       nav (fixed) ve header-ikonlar/hamburger (ikisi de absolute, header.php
+       içinde artık .brand'in İKİ AYRI kardeşi — .header-ikonlar içine gömülü
+       DEĞİL) akıştan çıkınca header-ust'ta tek akışta kalan eleman .brand
+       oluyor; justify-content:center ile onu TAM ortalıyoruz (space-between
+       yanılsamasından farklı).
+       NOT: hamburger BİLEREK .header-ikonlar'ın dışında, header-ust'un
+       doğrudan çocuğu — .header-ikonlar'ın kendisi position:absolute
+       olduğundan, içine gömülü bir eleman olsaydı hamburger'ın left:0'ı
+       header-ust'a değil .header-ikonlar'ın (sağa yaslı, dar) kutusuna göre
+       hesaplanır ve hamburger yanlışlıkla sağdaki ikon kümesinin yanında
+       konumlanırdı. */
+    .header-ust {
+        position: relative;
+        justify-content: center;
+    }
+
+    .header-ikonlar {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    /* Kullanıcı/favori ikonları sadeleştirmek için gizleniyor (linkler zaten
+       ayrı sayfalara ait, hamburger menüsünün kapsamı dışında). */
+    .sadece-desktop-ikon {
+        display: none;
+    }
+
+    .hamburger-btn {
+        display: flex !important;
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    /* Soldan kayan kapalı-çekmece. 768-1024 aralığında Bootstrap'ın kendi
+       offcanvas-md kuralını burada elle geçersiz kılıyoruz; 767px altında ise
+       Bootstrap'ın native offcanvas-start davranışıyla birebir aynı sonucu
+       üretiyor (aynı yön, aynı geçiş). */
+    /* NOT: HTML'de nav artık .offcanvas-start class'ını taşıyor, ama
+       konumlandırma özellikleri yine de bilinçli olarak !important ile
+       yazıldı — Bootstrap'ın 767.98px altındaki NATIVE
+       .offcanvas-md.offcanvas-start kuralı (.offcanvas-md.offcanvas-start =
+       2 sınıf) bizim düz .ana-nav seçicimizden daha yüksek özgüllüğe sahip;
+       !important olmadan 768-1024 aralığındaki bazı değerler (örn. width)
+       tutarsız kalabilir. */
+    .ana-nav {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: auto !important;
+        bottom: 0 !important;
+        width: var(--bs-offcanvas-width, 400px) !important;
+        max-width: 100% !important;
+        z-index: var(--bs-offcanvas-zindex, 1045);
+        visibility: hidden;
+        background-color: var(--renk-beyaz) !important;
+        border-right: 1px solid var(--renk-kenar) !important;
+        border-left: none !important;
+        box-shadow: 8px 0 24px rgba(0, 0, 0, 0.12) !important;
+        transition: var(--bs-offcanvas-transition, transform 0.3s ease-in-out);
+        transform: translateX(-100%) !important;
+    }
+
+    .ana-nav.show:not(.hiding),
+    .ana-nav.showing {
+        transform: none !important;
+    }
+
+    .ana-nav.hiding,
+    .ana-nav.show,
+    .ana-nav.showing {
+        visibility: visible;
+    }
+
+    .ana-nav .offcanvas-header {
+        display: flex !important;
+        padding: 1rem;
+        border-bottom: 1px solid var(--renk-kenar);
+    }
+
+    .ana-nav .offcanvas-body {
+        display: block;
+        flex-grow: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        background-color: var(--renk-beyaz) !important;
+    }
+
+    .ana-nav .nav-item > a {
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--renk-kenar);
+    }
+
+    /* Dar çekmece içinde masaüstündeki yüzen (absolute) mega menü sığmaz;
+       satır içi/statik açılır listeye dönüştürülüyor. */
+    .ana-nav .mega-menu {
+        position: static;
+        transform: none;
+        box-shadow: none;
+        padding: 10px 0 10px 16px;
+        min-width: 100%;
+    }
+
+    .ana-nav .mega-menu::before {
+        display: none;
+    }
+
+    .ana-nav .mega-menu-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 767px altı: tablet'teki 400px'lik kısmi panel yerine, küçük ekranda tam
+   genişlik çekmece (mobil için daha uygun bir dokunuşla). */
+@media (max-width: 767px) {
+    .ana-nav {
+        width: 100% !important;
+    }
 }
 
 /* Sepet Sidebar (Bootstrap .offcanvas; pozisyon/animasyon Bootstrap'tan geliyor) */
@@ -3029,6 +3210,11 @@ body {
         gap: 16px;
         padding-bottom: 4px;
         -webkit-overflow-scrolling: touch;
+        /* pan-x DEĞİL: yatay kaydırma JS ile elle (touchstart/move/end)
+           yönetiliyor (bkz. magaza.js dokunmaylaYatayKaydir). pan-y,
+           tarayıcıya "dikey pan bu elementin işi değil, native olarak sen
+           yönet" diyor; yatay yön ise JS'in kontrolünde. */
+        touch-action: pan-y;
         scrollbar-width: none;
     }
 
@@ -3175,6 +3361,9 @@ body {
         padding-bottom: 4px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        /* pan-x DEĞİL: bkz. .kategori-vitrin-grid'teki aynı isimli not —
+           yatay kaydırma JS ile elle yönetiliyor, dikey pan native kalıyor. */
+        touch-action: pan-y;
     }
 
     #kategoriUrunGrid::-webkit-scrollbar {

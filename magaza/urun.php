@@ -42,20 +42,20 @@ require_once __DIR__ . '/includes/urun-detay-veri.php';
             <div class="urun-galeri-ana" id="galeriAna">
                 <img src="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>"
                     alt="<?php echo htmlspecialchars($urun['baslik_tr']); ?>"
-                    id="galeriAnaImg">
+                    id="galeriAnaImg" draggable="false">
             </div>
             <?php if (count($ekResimler) > 0 || !empty($urun['ana_resim'])): ?>
                 <div class="urun-galeri-thumbnails">
                     <!-- Ana resim thumbnail -->
                     <?php if (!empty($urun['ana_resim'])): ?>
                         <div class="urun-galeri-thumb aktif" onclick="galeriDegistir(this, '<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>')">
-                            <img src="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>" alt="Ana">
+                            <img src="<?php echo htmlspecialchars(resim_url($urun['ana_resim'])); ?>" alt="Ana" draggable="false">
                         </div>
                     <?php endif; ?>
                     <!-- Ek resimler -->
                     <?php foreach ($ekResimler as $resim): ?>
                         <div class="urun-galeri-thumb" onclick="galeriDegistir(this, '<?php echo htmlspecialchars(resim_url($resim['resim_yolu'])); ?>')">
-                            <img src="<?php echo htmlspecialchars(resim_url($resim['resim_yolu'])); ?>" alt="Ek Resim">
+                            <img src="<?php echo htmlspecialchars(resim_url($resim['resim_yolu'])); ?>" alt="Ek Resim" draggable="false">
                         </div>
                     <?php endforeach; ?>
                 </div>

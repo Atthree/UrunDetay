@@ -67,7 +67,7 @@ $vitrinGorselleri = [
             <div class="category-highlights-grid kategori-vitrin-grid" id="kategoriVitrinGrid">
                 <?php foreach ($vitrinKategorileri as $vk): ?>
                     <a href="index.php?kategori=<?php echo urlencode($vk); ?>#urunler" class="category-highlight-kart">
-                        <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel">
+                        <img src="<?php echo htmlspecialchars($vitrinGorselleri[$vk]); ?>" alt="<?php echo htmlspecialchars($vitrinBaslik[$vk]); ?>" class="category-highlight-gorsel" draggable="false">
                         <div class="category-highlight-overlay"></div>
                         <div class="category-highlight-metin">
                             <span class="category-highlight-ad">
@@ -456,7 +456,7 @@ $urunYorumCarousel = $pdo->query("
                         <div class="yorum-yazan"><?php echo htmlspecialchars($yorum['reviewer_adi'] ?? 'Müşteri'); ?></div>
                         <p class="urun-yorum-metin"><?php echo htmlspecialchars($yorum['yorum']); ?></p>
                         <div class="urun-yorum-urun">
-                            <img src="<?php echo htmlspecialchars(resim_url($yorum['ana_resim'])); ?>" alt="">
+                            <img src="<?php echo htmlspecialchars(resim_url($yorum['ana_resim'])); ?>" alt="" draggable="false">
                             <div>
                                 <div class="ad"><?php echo htmlspecialchars($yorum['baslik_tr']); ?></div>
                                 <div class="fiyat">$<?php echo number_format($yorum['fiyat_usd'], 2); ?></div>
@@ -485,7 +485,7 @@ $urunYorumCarousel = $pdo->query("
                     <p class="promo-banner-aciklama">149 TL'den başlayan fiyatlarla, kaçırmayın...</p>
                     <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
                 </div>
-                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel">
+                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel" draggable="false">
             </div>
             <div class="promo-banner promo-banner-bordo">
                 <div class="promo-banner-metin">
@@ -494,7 +494,7 @@ $urunYorumCarousel = $pdo->query("
                     <p class="promo-banner-aciklama">99 TL'den başlayan fiyatlarla, kaçırmayın...</p>
                     <a href="index.php?tumu=1#urunler" class="promo-banner-btn">Alışverişe Git</a>
                 </div>
-                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel">
+                <img src="/UrunDetay/magaza/assets/img/MutfakAksesuarlari.jpg" alt="Mutfak Eşyaları" class="promo-banner-gorsel" draggable="false">
             </div>
         </div>
 
